@@ -65,9 +65,9 @@ namespace Msdfgen
 
         private class FtContext
         {
+            private readonly Shape _shape;
             private Contour _contour;
             private Vector2 _position;
-            private readonly Shape _shape;
 
             public FtContext(Shape output)
             {

@@ -181,7 +181,7 @@ namespace Msdfgen
             return Arithmetics.Mix(_p[1] - _p[0], _p[2] - _p[1], param);
         }
 
-        public override SignedDistance SignedDistance(Vector2 origin, ref double param)
+        public override unsafe SignedDistance SignedDistance(Vector2 origin, ref double param)
         {
             var qa = _p[0] - origin;
             var ab = _p[1] - _p[0];
@@ -190,7 +190,7 @@ namespace Msdfgen
             var b = 3 * Vector2.Dot(ab, br);
             var c = 2 * Vector2.Dot(ab, ab) + Vector2.Dot(qa, br);
             var d = Vector2.Dot(qa, ab);
-            var t = new double[3];
+            var t = stackalloc double[3];
             var solutions = Equations.SolveCubic(t, a, b, c, d);
 
             var minDistance = Arithmetics.NonZeroSign(Vector2.Cross(ab, qa)) * qa.Length(); // distance from A
@@ -251,7 +251,8 @@ namespace Msdfgen
         {
             var origSDir = _p[0] - _p[1];
             var origP1 = _p[1];
-            _p[1] += Vector2.Cross(_p[0] - _p[1], to - _p[0]) / Vector2.Cross(_p[0] - _p[1], _p[2] - _p[1]) * (_p[2] - _p[1]);
+            _p[1] += Vector2.Cross(_p[0] - _p[1], to - _p[0]) / Vector2.Cross(_p[0] - _p[1], _p[2] - _p[1]) *
+                     (_p[2] - _p[1]);
             _p[0] = to;
             if (Vector2.Dot(origSDir, _p[0] - _p[1]) < 0)
                 _p[1] = origP1;
@@ -261,7 +262,8 @@ namespace Msdfgen
         {
             var origEDir = _p[2] - _p[1];
             var origP1 = _p[1];
-            _p[1] += Vector2.Cross(_p[2] - _p[1], to - _p[2]) / Vector2.Cross(_p[2] - _p[1], _p[0] - _p[1]) * (_p[0] - _p[1]);
+            _p[1] += Vector2.Cross(_p[2] - _p[1], to - _p[2]) / Vector2.Cross(_p[2] - _p[1], _p[0] - _p[1]) *
+                     (_p[0] - _p[1]);
             _p[2] = to;
             if (Vector2.Dot(origEDir, _p[2] - _p[1]) < 0)
                 _p[1] = origP1;
@@ -272,7 +274,8 @@ namespace Msdfgen
         {
             part1 = new QuadraticSegment(_p[0], Arithmetics.Mix(_p[0], _p[1], 1.0 / 3.0), Point(1.0 / 3.0), Color);
             part2 = new QuadraticSegment(Point(1.0 / 3.0),
-                Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetics.Mix(_p[1], _p[2], 4.0 / 9.0), 0.5),
+                Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetics.Mix(_p[1], _p[2], 4.0 / 9.0),
+                    0.5),
                 Point(2 / 3.0), Color);
             part3 = new QuadraticSegment(Point(2.0 / 3.0), Arithmetics.Mix(_p[1], _p[2], 2.0 / 3.0), _p[2], Color);
         }
@@ -368,14 +371,14 @@ namespace Msdfgen
                 Math.Abs(Vector2.Dot(Direction(1).Normalize(), (_p[3] - origin).Normalize())));
         }
 
-        public override void Bounds(ref double l, ref double b, ref double r, ref double t)
+        public override unsafe void Bounds(ref double l, ref double b, ref double r, ref double t)
         {
             PointBounds(_p[0], ref l, ref b, ref r, ref t);
             PointBounds(_p[3], ref l, ref b, ref r, ref t);
             var a0 = _p[1] - _p[0];
             var a1 = 2 * (_p[2] - _p[1] - a0);
             var a2 = _p[3] - 3 * _p[2] + 3 * _p[1] - _p[0];
-            var param = new double[2];
+            var param = stackalloc double[2];
             var solutions = Equations.SolveQuadratic(param, a2.X, a1.X, a0.X);
             for (var i = 0; i < solutions; ++i)
                 if (param[i] > 0 && param[i] < 1)

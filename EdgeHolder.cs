@@ -28,5 +28,5 @@ namespace Msdfgen
         }
 
         public EdgeSegment Segment { get; }
-    };
+    }
 }

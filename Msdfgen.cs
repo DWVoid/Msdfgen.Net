@@ -463,7 +463,7 @@ namespace Msdfgen
                             r.NearParam = param;
                         }
 
-                        if ((edge.Segment.Color & EdgeColor.Green) != 0  && distance < g.MinDistance)
+                        if ((edge.Segment.Color & EdgeColor.Green) != 0 && distance < g.MinDistance)
                         {
                             g.MinDistance = distance;
                             g.NearEdge = edge;

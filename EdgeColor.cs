@@ -14,6 +14,5 @@ namespace Msdfgen
         Magenta = 5,
         Cyan = 6,
         White = 7
-    };
-
+    }
 }

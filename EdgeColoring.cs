@@ -79,12 +79,12 @@ namespace Msdfgen
                             var m = contour.Edges.Count;
                             for (var i = 0; i < m; ++i)
                                 contour.Edges[(corner + i) % m].Segment.Color =
-                                    (colors + 1)[(int)Math.Floor(3 + 2.875 * i / (m - 1) - 1.4375 + .5) - 3];
+                                    (colors + 1)[(int) Math.Floor(3 + 2.875 * i / (m - 1) - 1.4375 + .5) - 3];
                         }
                         else if (contour.Edges.Count >= 1)
                         {
                             // Less than three edge segments for three colors => edges must be split
-                            var parts = new EdgeSegment[] { null, null, null, null, null, null, null };
+                            var parts = new EdgeSegment[] {null, null, null, null, null, null, null};
                             contour.Edges[0].Segment.SplitInThirds(out parts[0 + 3 * corner], out parts[1 + 3 * corner],
                                 out parts[2 + 3 * corner]);
                             if (contour.Edges.Count >= 2)

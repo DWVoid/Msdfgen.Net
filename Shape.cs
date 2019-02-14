@@ -18,9 +18,11 @@ namespace Msdfgen
         }
 
         /// Normalizes the shape geometry for distance field generation.
-        public void Normalize(){
+        public void Normalize()
+        {
             foreach (var contour in Contours)
-                if (contour.Edges.Count == 1) {
+                if (contour.Edges.Count == 1)
+                {
                     var parts = new EdgeSegment[3];
                     contour.Edges[0].Segment.SplitInThirds(out parts[0], out parts[1], out parts[2]);
                     contour.Edges.Clear();
@@ -34,7 +36,6 @@ namespace Msdfgen
         public bool Validate()
         {
             foreach (var contour in Contours)
-            {
                 if (contour.Edges.Count > 0)
                 {
                     var corner = contour.Edges[contour.Edges.Count - 2].Segment.Point(1);
@@ -47,16 +48,15 @@ namespace Msdfgen
                         corner = edge.Segment.Point(1);
                     }
                 }
-            }
 
             return true;
         }
 
         /// Computes the shape's bounding box.
-        public void Bounds(ref double l, ref double b, ref double r, ref double t){
+        public void Bounds(ref double l, ref double b, ref double r, ref double t)
+        {
             foreach (var contour in Contours)
-                contour.Bounds(ref l, ref b, ref r, ref t);            
+                contour.Bounds(ref l, ref b, ref r, ref t);
         }
     }
-
 }

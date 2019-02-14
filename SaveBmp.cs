@@ -7,7 +7,7 @@ namespace Msdfgen
     {
         private static void WriteBmpHeader(BinaryWriter file, int width, int height, ref int paddedWidth)
         {
-            paddedWidth = 3 * width + 3 & ~3;
+            paddedWidth = (3 * width + 3) & ~3;
             const uint bitmapStart = 54;
             var bitmapSize = (uint) (paddedWidth * height);
             var fileSize = bitmapStart + bitmapSize;
@@ -41,7 +41,7 @@ namespace Msdfgen
                     WriteBmpHeader(file, bitmap.Width, bitmap.Height, ref paddedWidth);
 
                     var padding = new byte[paddedWidth - 3 * bitmap.Width];
-                    
+
                     for (var y = 0; y < bitmap.Height; ++y)
                     {
                         for (var x = 0; x < bitmap.Width; ++x)
@@ -51,6 +51,7 @@ namespace Msdfgen
                             file.Write(px);
                             file.Write(px);
                         }
+
                         file.Write(padding);
                     }
                 }
@@ -67,7 +68,7 @@ namespace Msdfgen
                     WriteBmpHeader(file, bitmap.Width, bitmap.Height, ref paddedWidth);
 
                     var padding = new byte[paddedWidth - 3 * bitmap.Width];
-                    
+
                     for (var y = 0; y < bitmap.Height; ++y)
                     {
                         for (var x = 0; x < bitmap.Width; ++x)
@@ -80,6 +81,7 @@ namespace Msdfgen
                             };
                             file.Write(bgr);
                         }
+
                         file.Write(padding);
                     }
                 }

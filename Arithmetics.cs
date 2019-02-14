@@ -9,7 +9,7 @@ namespace Msdfgen
         {
             return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
         }
-        
+
         public static double Median(double a, double b, double c)
         {
             return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
@@ -20,7 +20,7 @@ namespace Msdfgen
         {
             return (1.0 - weight) * a + weight * b;
         }
-        
+
         public static float Mix(float a, float b, double weight)
         {
             return (float) ((1.0 - weight) * a + weight * b);
@@ -29,13 +29,13 @@ namespace Msdfgen
         /// Returns 1 for positive values, -1 for negative values, and 0 for zero.
         public static int Sign(double n)
         {
-            return ((0 < n) ? 1 : 0) - ((n < 0) ? 1 : 0);
+            return (0 < n ? 1 : 0) - (n < 0 ? 1 : 0);
         }
 
         /// Returns 1 for non-negative values and -1 for negative values.
         public static int NonZeroSign(double n)
         {
-            return (n >= 0) ? 1 : -1;
+            return n >= 0 ? 1 : -1;
         }
     }
 }

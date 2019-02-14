@@ -1,0 +1,28 @@
+﻿# IDE Data
+/.idea/
+/.vs/
+
+# Build Data
+/bin
+/obj
+
+# Binaries
+*.exe
+*.dll
+*.dylib
+*.so
+
+# Just in case any test files are left in the tree
+*.ttf
+*.otf
+*.bmp
+*.png
+
+# Ignore Resharper User Files
+*.DotSettings.User
+
+# Ignore Filesystem meta data file
+*/.DS_Store
+.DS_Store
+*/thumbs.db
+thumbs.db

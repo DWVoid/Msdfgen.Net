@@ -6,7 +6,7 @@ namespace Msdfgen
     {
         private static FloatRgb Mix(FloatRgb a, FloatRgb b, double weight)
         {
-            var output = new FloatRgb()
+            var output = new FloatRgb
             {
                 R = Arithmetics.Mix(a.R, b.R, weight),
                 G = Arithmetics.Mix(a.G, b.G, weight),
@@ -15,7 +15,8 @@ namespace Msdfgen
             return output;
         }
 
-        static FloatRgb Sample(Bitmap<FloatRgb> bitmap, Vector2 pos) {
+        private static FloatRgb Sample(Bitmap<FloatRgb> bitmap, Vector2 pos)
+        {
             int w = bitmap.Width, h = bitmap.Height;
             var x = pos.X * w - .5;
             var y = pos.Y * h - .5;
@@ -32,7 +33,8 @@ namespace Msdfgen
             return Mix(Mix(bitmap[l, b], bitmap[r, b], lr), Mix(bitmap[l, t], bitmap[r, t], lr), bt);
         }
 
-        static float Sample(Bitmap<float> bitmap, Vector2 pos) {
+        private static float Sample(Bitmap<float> bitmap, Vector2 pos)
+        {
             int w = bitmap.Width, h = bitmap.Height;
             var x = pos.X * w - .5;
             var y = pos.Y * h - .5;
@@ -46,17 +48,19 @@ namespace Msdfgen
             r = Math.Clamp(r, 0, w - 1);
             b = Math.Clamp(b, 0, h - 1);
             t = Math.Clamp(t, 0, h - 1);
-            return Arithmetics.Mix(Arithmetics.Mix(bitmap[l, b], bitmap[r, b], lr), Arithmetics.Mix(bitmap[l, t], bitmap[r, t], lr), bt);
+            return Arithmetics.Mix(Arithmetics.Mix(bitmap[l, b], bitmap[r, b], lr),
+                Arithmetics.Mix(bitmap[l, t], bitmap[r, t], lr), bt);
         }
 
-        static float DistVal(float dist, double pxRange)
+        private static float DistVal(float dist, double pxRange)
         {
             if (pxRange == 0)
                 return dist > .5 ? 1 : 0;
             return (float) Math.Clamp((dist - .5) * pxRange + .5, 0, 1);
         }
 
-        public static void RenderSdf(Bitmap<float> output, Bitmap<float> sdf, double pxRange) {
+        public static void RenderSdf(Bitmap<float> output, Bitmap<float> sdf, double pxRange)
+        {
             int w = output.Width, h = output.Height;
             pxRange *= (double) (w + h) / (sdf.Width + sdf.Height);
             for (var y = 0; y < h; ++y)
@@ -67,7 +71,8 @@ namespace Msdfgen
             }
         }
 
-        public static void RenderSdf(Bitmap<FloatRgb> output, Bitmap<float> sdf, double pxRange) {
+        public static void RenderSdf(Bitmap<FloatRgb> output, Bitmap<float> sdf, double pxRange)
+        {
             int w = output.Width, h = output.Height;
             pxRange *= (double) (w + h) / (sdf.Width + sdf.Height);
             for (var y = 0; y < h; ++y)
@@ -81,7 +86,8 @@ namespace Msdfgen
             }
         }
 
-        public static void RenderSdf(Bitmap<float> output, Bitmap<FloatRgb> sdf, double pxRange) {
+        public static void RenderSdf(Bitmap<float> output, Bitmap<FloatRgb> sdf, double pxRange)
+        {
             int w = output.Width, h = output.Height;
             pxRange *= (double) (w + h) / (sdf.Width + sdf.Height);
             for (var y = 0; y < h; ++y)
@@ -92,7 +98,8 @@ namespace Msdfgen
             }
         }
 
-        public static void RenderSdf(Bitmap<FloatRgb> output, Bitmap<FloatRgb> sdf, double pxRange) {
+        public static void RenderSdf(Bitmap<FloatRgb> output, Bitmap<FloatRgb> sdf, double pxRange)
+        {
             int w = output.Width, h = output.Height;
             pxRange *= (double) (w + h) / (sdf.Width + sdf.Height);
             for (var y = 0; y < h; ++y)
@@ -130,6 +137,5 @@ namespace Msdfgen
                 bitmap[x, y].B = b / 255.0f;
             }
         }
-
     }
 }

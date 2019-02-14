@@ -1,6 +1,7 @@
 using System;
 
-namespace Msdfgen {
+namespace Msdfgen
+{
     /**
      * A 2-dimensional euclidean vector with double precision.
      * Implementation based on the Vector2 template from Artery Engine.
@@ -134,7 +135,7 @@ namespace Msdfgen {
         {
             return new Vector2(lhs.X / value, lhs.Y / value);
         }
-        
+
         /// Dot product of two vectors.
         public static double Dot(Vector2 a, Vector2 b)
         {
@@ -156,8 +157,5 @@ namespace Msdfgen {
         {
             return new Vector2(value / vector.X, value / vector.Y);
         }
-
     }
-
 }
-    

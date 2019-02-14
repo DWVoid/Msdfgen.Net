@@ -1,11 +1,14 @@
 namespace Msdfgen
 {
-    public struct FloatRgb {
-        public float R, G, B;
-    };
-    
-    public class Bitmap<T> where T:struct
+    public struct FloatRgb
     {
+        public float R, G, B;
+    }
+
+    public class Bitmap<T> where T : struct
+    {
+        private readonly T[,] _content;
+
         public Bitmap()
         {
         }
@@ -22,8 +25,5 @@ namespace Msdfgen
         public int Width { get; }
 
         public int Height { get; }
-
-        private readonly T[,] _content;
     }
-   
 }

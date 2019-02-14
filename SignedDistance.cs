@@ -18,23 +18,26 @@ namespace Msdfgen
 
         public static bool operator <(SignedDistance a, SignedDistance b)
         {
-            return Math.Abs(a.Distance) < Math.Abs(b.Distance) || (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot < b.Dot);
+            return Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
+                   Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot < b.Dot;
         }
 
         public static bool operator >(SignedDistance a, SignedDistance b)
         {
-            return Math.Abs(a.Distance) > Math.Abs(b.Distance) || (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot > b.Dot);
+            return Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
+                   Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot > b.Dot;
         }
 
         public static bool operator <=(SignedDistance a, SignedDistance b)
         {
-            return Math.Abs(a.Distance) < Math.Abs(b.Distance) || (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot <= b.Dot);
+            return Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
+                   Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot <= b.Dot;
         }
 
         public static bool operator >=(SignedDistance a, SignedDistance b)
         {
-            return Math.Abs(a.Distance) > Math.Abs(b.Distance) || (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot >= b.Dot);
+            return Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
+                   Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot >= b.Dot;
         }
-    };
-
+    }
 }
