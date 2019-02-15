@@ -1,4 +1,5 @@
-﻿using Msdfgen.IO;
+﻿using System.CodeDom.Compiler;
+using Msdfgen.IO;
 
 namespace Msdfgen.ManualTest
 {
@@ -11,12 +12,18 @@ namespace Msdfgen.ManualTest
             var font = ImportFont.LoadFont(ft, "test.otf");
             var shape = ImportFont.LoadGlyph(font, '曦', ref advance);
             var msdf = new Bitmap<FloatRgb>(32, 32);
+            var generator = Generate.Msdf();
+            generator.Output = msdf;
+            generator.Range = 0.5;
+            generator.Scale = new Vector2(2.0);
+            generator.Translate = new Vector2(2, 2);
 
             for (int i = 0; i < 5; ++i)
             {
                 shape.Normalize();
                 Coloring.EdgeColoringSimple(shape, 3.0);
-                Generate.Msdf(msdf, shape, 0.5, new Vector2(2.0), new Vector2(2, 2));
+                generator.Shape = shape;
+                generator.Compute();
                 if (i % 100 == 0)
                     System.Console.WriteLine(i);
             }

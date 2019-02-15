@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Msdfgen
 {
@@ -85,347 +86,22 @@ namespace Msdfgen
             }
         }
 
-        private interface IDistance
-        {
-            double Get();
-            void Set(double dist);
-        }
-
-        private class Overlapping<TDistance, TPixel> where TPixel : struct where TDistance : struct, IDistance
-        {
-            public Shape Shape;
-            public double Range;
-            public Vector2 Scale;
-            public Vector2 Translate;
-            public Bitmap<TPixel> Output;
-            protected List<int> Windings;
-            protected TDistance[] ContourSd;
-
-            protected struct InstanceContext
-            {
-                public Vector2 p;
-                public double NegDist, PosDist;
-            }    
-
-            protected void Init()
-            {
-                Windings = new List<int>(Shape.Count);
-                foreach (var contour in Shape)
-                    Windings.Add(contour.Winding());
-                ContourSd = new TDistance[Shape.Count];
-            }
-
-            protected void Compute()
-            {
-                var distanceInfinite = GetInfiniteDistance();
-                for (var y = 0; y < Output.Height; ++y)
-                {
-                    var row = Shape.InverseYAxis ? Output.Height - y - 1 : y;
-                    for (var x = 0; x < Output.Width; ++x)
-                    {
-                        var context = new InstanceContext
-                        {
-                            p = new Vector2(x + .5, y + .5) / Scale - Translate,
-                            NegDist = -SignedDistance.Infinite.Distance,
-                            PosDist = SignedDistance.Infinite.Distance
-                        };
-                        ComputePixel(ref context);
-                    }
-                }
-            }
-
-            protected TDistance ComputeSd(TDistance distanceInfinite, ref InstanceContext context)
-            {
-                var sd = distanceInfinite;
-                var winding = 0;
-                if (context.PosDist >= 0 && Math.Abs(context.PosDist) <= Math.Abs(context.NegDist))
-                {
-                    sd.Set(context.PosDist);
-                    winding = 1;
-                    for (var i = 0; i < Shape.Count; ++i)
-                        if (Windings[i] > 0 && ContourSd[i].Get() > sd.Get() &&
-                            Math.Abs(ContourSd[i].Get()) < Math.Abs(context.NegDist))
-                            sd = ContourSd[i];
-                }
-                else if (context.NegDist <= 0 && Math.Abs(context.NegDist) <= Math.Abs(context.PosDist))
-                {
-                    sd.Set(context.NegDist);
-                    winding = -1;
-                    for (var i = 0; i < Shape.Count; ++i)
-                        if (Windings[i] < 0 && ContourSd[i].Get() < sd.Get() &&
-                            Math.Abs(ContourSd[i].Get()) < Math.Abs(context.PosDist))
-                            sd = ContourSd[i];
-                }
-
-                for (var i = 0; i < Shape.Count; ++i)
-                    if (Windings[i] != winding && Math.Abs(ContourSd[i].Get()) < Math.Abs(sd.Get()))
-                        sd = ContourSd[i];
-                return sd;
-            }
-
-            protected virtual TDistance GetInfiniteDistance()
-            {
-                return new TDistance();
-            }
-
-            protected virtual void ComputePixel(ref InstanceContext ctx)
-            {
-            }
-        }
-
         /// Generates a conventional single-channel signed distance field.
-        public static void Sdf(Bitmap<float> output, Shape shape, double range, Vector2 scale,
-            Vector2 translate)
+        public static ISdf Sdf()
         {
-            var contourCount = shape.Count;
-            int w = output.Width, h = output.Height;
-            var windings = new List<int>(contourCount);
-            foreach (var contour in shape)
-                windings.Add(contour.Winding());
-            var contourSd = new double[contourCount];
-
-            for (var y = 0; y < h; ++y)
-            {
-                var row = shape.InverseYAxis ? h - y - 1 : y;
-                for (var x = 0; x < w; ++x)
-                {
-                    double dummy = 0;
-                    var p = new Vector2(x + .5, y + .5) / scale - translate;
-                    var negDist = -SignedDistance.Infinite.Distance;
-                    var posDist = SignedDistance.Infinite.Distance;
-                    var winding = 0;
-
-                    for (var i = 0; i < contourCount; ++i)
-                    {
-                        var minDistance = SignedDistance.Infinite;
-                        foreach (var edge in shape[i])
-                        {
-                            var distance = edge.SignedDistance(p, ref dummy);
-                            if (distance < minDistance)
-                                minDistance = distance;
-                        }
-
-                        contourSd[i] = minDistance.Distance;
-                        if (windings[i] > 0 && minDistance.Distance >= 0 &&
-                            Math.Abs(minDistance.Distance) < Math.Abs(posDist))
-                            posDist = minDistance.Distance;
-                        if (windings[i] < 0 && minDistance.Distance <= 0 &&
-                            Math.Abs(minDistance.Distance) < Math.Abs(negDist))
-                            negDist = minDistance.Distance;
-                    }
-
-                    var sd = SignedDistance.Infinite.Distance;
-                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
-                    {
-                        sd = posDist;
-                        winding = 1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] > 0 && contourSd[i] > sd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
-                                sd = contourSd[i];
-                    }
-                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                    {
-                        sd = negDist;
-                        winding = -1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] < 0 && contourSd[i] < sd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
-                                sd = contourSd[i];
-                    }
-
-                    for (var i = 0; i < contourCount; ++i)
-                        if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(sd))
-                            sd = contourSd[i];
-
-                    output[x, row] = (float) (sd / range + 0.5);
-                }
-            }
+            return new SdfImpl();
         }
 
         /// Generates a single-channel signed pseudo-distance field.
-        public static void PseudoSdf(Bitmap<float> output, Shape shape, double range, Vector2 scale,
-            Vector2 translate)
+        public static ISdf PseudoSdf()
         {
-            var contourCount = shape.Count;
-            int w = output.Width, h = output.Height;
-            var windings = new List<int>(contourCount);
-            foreach (var contour in shape)
-                windings.Add(contour.Winding());
-
-            var contourSd = new double[contourCount];
-            for (var y = 0; y < h; ++y)
-            {
-                var row = shape.InverseYAxis ? h - y - 1 : y;
-                for (var x = 0; x < w; ++x)
-                {
-                    var p = new Vector2(x + .5, y + .5) / scale - translate;
-                    var sd = SignedDistance.Infinite.Distance;
-                    var negDist = -SignedDistance.Infinite.Distance;
-                    var posDist = SignedDistance.Infinite.Distance;
-                    var winding = 0;
-
-                    for (var i = 0; i < contourCount; ++i)
-                    {
-                        var minDistance = SignedDistance.Infinite;
-                        EdgeSegment nearEdge = null;
-                        double nearParam = 0;
-                        foreach (var edge in shape[i])
-                        {
-                            double param = 0;
-                            var distance = edge.SignedDistance(p, ref param);
-                            if (distance < minDistance)
-                            {
-                                minDistance = distance;
-                                nearEdge = edge;
-                                nearParam = param;
-                            }
-                        }
-
-                        if (Math.Abs(minDistance.Distance) < Math.Abs(sd))
-                        {
-                            sd = minDistance.Distance;
-                            winding = -windings[i];
-                        }
-
-                        nearEdge?.DistanceToPseudoDistance(ref minDistance, p, nearParam);
-                        contourSd[i] = minDistance.Distance;
-                        if (windings[i] > 0 && minDistance.Distance >= 0 &&
-                            Math.Abs(minDistance.Distance) < Math.Abs(posDist))
-                            posDist = minDistance.Distance;
-                        if (windings[i] < 0 && minDistance.Distance <= 0 &&
-                            Math.Abs(minDistance.Distance) < Math.Abs(negDist))
-                            negDist = minDistance.Distance;
-                    }
-
-                    var psd = SignedDistance.Infinite.Distance;
-                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
-                    {
-                        psd = posDist;
-                        winding = 1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] > 0 && contourSd[i] > psd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
-                                psd = contourSd[i];
-                    }
-                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                    {
-                        psd = negDist;
-                        winding = -1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] < 0 && contourSd[i] < psd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
-                                psd = contourSd[i];
-                    }
-
-                    for (var i = 0; i < contourCount; ++i)
-                        if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(psd))
-                            psd = contourSd[i];
-
-                    output[x, row] = (float) (psd / range + 0.5);
-                }
-            }
+            return new PseudoSdfImpl();
         }
 
         /// Generates a multi-channel signed distance field. Edge colors must be assigned first! (see edgeColoringSimple)
-        public static void Msdf(Bitmap<FloatRgb> output, Shape shape, double range, Vector2 scale,
-            Vector2 translate, double edgeThreshold = 1.00000001)
+        public static IMsdf Msdf()
         {
-            var contourCount = shape.Count;
-            int w = output.Width, h = output.Height;
-            var windings = new List<int>(contourCount);
-            foreach (var contour in shape)
-                windings.Add(contour.Winding());
-            var contourSd = new MultiDistance[contourCount];
-            for (var y = 0; y < h; ++y)
-            {
-                var row = shape.InverseYAxis ? h - y - 1 : y;
-                for (var x = 0; x < w; ++x)
-                {
-                    var p = new Vector2(x + .5, y + .5) / scale - translate;
-                    EdgePoint sr = EdgePoint.Default, sg = EdgePoint.Default, sb = EdgePoint.Default;
-                    var d = Math.Abs(SignedDistance.Infinite.Distance);
-                    var negDist = -SignedDistance.Infinite.Distance;
-                    var posDist = SignedDistance.Infinite.Distance;
-                    var winding = 0;
-
-                    for (var i = 0; i < contourCount; ++i)
-                    {
-                        EdgePoint r = EdgePoint.Default, g = EdgePoint.Default, b = EdgePoint.Default;
-                   
-                        MsdfScanContourEdges(shape[i], p, ref r, ref g, ref b);
-                   
-                        if (r.MinDistance < sr.MinDistance)
-                            sr = r;
-                        if (g.MinDistance < sg.MinDistance)
-                            sg = g;
-                        if (b.MinDistance < sb.MinDistance)
-                            sb = b;
-
-                        var medMinDistance = Math.Abs(Arithmetic.Median(r.MinDistance.Distance,
-                            g.MinDistance.Distance,
-                            b.MinDistance.Distance));
-                        if (medMinDistance < d)
-                        {
-                            d = medMinDistance;
-                            winding = -windings[i];
-                        }
-
-                        r.NearEdge?.DistanceToPseudoDistance(ref r.MinDistance, p, r.NearParam);
-                        g.NearEdge?.DistanceToPseudoDistance(ref g.MinDistance, p, g.NearParam);
-                        b.NearEdge?.DistanceToPseudoDistance(ref b.MinDistance, p, b.NearParam);
-                        medMinDistance = Arithmetic.Median(r.MinDistance.Distance, g.MinDistance.Distance,
-                            b.MinDistance.Distance);
-                        contourSd[i].R = r.MinDistance.Distance;
-                        contourSd[i].G = g.MinDistance.Distance;
-                        contourSd[i].B = b.MinDistance.Distance;
-                        contourSd[i].Med = medMinDistance;
-                        if (windings[i] > 0 && medMinDistance >= 0 && Math.Abs(medMinDistance) < Math.Abs(posDist))
-                            posDist = medMinDistance;
-                        if (windings[i] < 0 && medMinDistance <= 0 && Math.Abs(medMinDistance) < Math.Abs(negDist))
-                            negDist = medMinDistance;
-                    }
-
-                    sr.NearEdge?.DistanceToPseudoDistance(ref sr.MinDistance, p, sr.NearParam);
-                    sg.NearEdge?.DistanceToPseudoDistance(ref sg.MinDistance, p, sg.NearParam);
-                    sb.NearEdge?.DistanceToPseudoDistance(ref sb.MinDistance, p, sb.NearParam);
-
-                    MultiDistance msd;
-                    msd.R = msd.G = msd.B = msd.Med = SignedDistance.Infinite.Distance;
-                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
-                    {
-                        msd.Med = SignedDistance.Infinite.Distance;
-                        winding = 1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] > 0 && contourSd[i].Med > msd.Med &&
-                                Math.Abs(contourSd[i].Med) < Math.Abs(negDist))
-                                msd = contourSd[i];
-                    }
-                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                    {
-                        msd.Med = -SignedDistance.Infinite.Distance;
-                        winding = -1;
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] < 0 && contourSd[i].Med < msd.Med &&
-                                Math.Abs(contourSd[i].Med) < Math.Abs(posDist))
-                                msd = contourSd[i];
-                    }
-
-                    for (var i = 0; i < contourCount; ++i)
-                        if (windings[i] != winding && Math.Abs(contourSd[i].Med) < Math.Abs(msd.Med))
-                            msd = contourSd[i];
-                    if (Arithmetic.Median(sr.MinDistance.Distance, sg.MinDistance.Distance,
-                            sb.MinDistance.Distance) == msd.Med)
-                    {
-                        msd.R = sr.MinDistance.Distance;
-                        msd.G = sg.MinDistance.Distance;
-                        msd.B = sb.MinDistance.Distance;
-                    }
-
-                    output[x, row].R = (float) (msd.R / range + .5);
-                    output[x, row].G = (float) (msd.G / range + .5);
-                    output[x, row].B = (float) (msd.B / range + .5);
-                }
-            }
-
-            if (edgeThreshold > 0)
-                MsdfErrorCorrection(output, edgeThreshold / (scale * range));
+            return new MsdfImpl();
         }
 
         private static void MsdfScanContourEdges(Contour contour, Vector2 p, ref EdgePoint r, ref EdgePoint g,
@@ -531,7 +207,7 @@ namespace Msdfgen
 
                     foreach (var contour in shape)
                         MsdfScanContourEdges(contour, p, ref r, ref g, ref b);
-                  
+
                     r.NearEdge?.DistanceToPseudoDistance(ref r.MinDistance, p, r.NearParam);
                     g.NearEdge?.DistanceToPseudoDistance(ref g.MinDistance, p, g.NearParam);
                     b.NearEdge?.DistanceToPseudoDistance(ref b.MinDistance, p, b.NearParam);
@@ -545,26 +221,302 @@ namespace Msdfgen
                 MsdfErrorCorrection(output, edgeThreshold / (scale * range));
         }
 
-        private struct MultiDistance : IComparable<MultiDistance>
+        public interface ISdfBase<T> where T : struct
         {
-            public double R, G, B;
-            public double Med;
+            Bitmap<T> Output { set; }
+            Shape Shape { set; }
+            double Range { set; }
+            Vector2 Scale { set; }
+            Vector2 Translate { set; }
+            void Compute();
+        }
 
-            public int CompareTo(MultiDistance other)
+        public interface ISdf : ISdfBase<float>
+        {
+        }
+
+        public interface IMsdf : ISdfBase<FloatRgb>
+        {
+            double EdgeThreshold { set; }
+        }
+
+        private interface IDistance
+        {
+            double Dist { get; set; }
+        }
+
+        private struct SingleDistance : IDistance
+        {
+            public double Dist
             {
-                return Med.CompareTo(other.Med);
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                set;
+            }
+        }
+
+        private abstract class Overlapping<TDistance, TPixel> : ISdfBase<TPixel>
+            where TPixel : struct where TDistance : struct, IDistance
+        {
+            protected TDistance[] ContourSd;
+            protected List<int> Windings;
+            public Bitmap<TPixel> Output { protected get; set; }
+            public double Range { protected get; set; }
+            public Vector2 Scale { protected get; set; }
+            public Shape Shape { protected get; set; }
+            public Vector2 Translate { private get; set; }
+
+            public virtual void Compute()
+            {
+                Init();
+                for (var y = 0; y < Output.Height; ++y)
+                {
+                    var row = Shape.InverseYAxis ? Output.Height - y - 1 : y;
+                    for (var x = 0; x < Output.Width; ++x)
+                    {
+                        var context = new InstanceContext
+                        {
+                            P = new Vector2(x + .5, y + .5) / Scale - Translate,
+                            NegDist = -SignedDistance.Infinite.Distance,
+                            PosDist = SignedDistance.Infinite.Distance,
+                            Winding = 0
+                        };
+                        Output[x, row] = ComputePixel(ref context);
+                    }
+                }
+            }
+
+            private void Init()
+            {
+                Windings = new List<int>(Shape.Count);
+                foreach (var contour in Shape)
+                    Windings.Add(contour.Winding());
+                ContourSd = new TDistance[Shape.Count];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            protected TDistance ComputeSd(TDistance sd, ref InstanceContext context)
+            {
+                if (context.PosDist >= 0 && Math.Abs(context.PosDist) <= Math.Abs(context.NegDist))
+                {
+                    sd.Dist = context.PosDist;
+                    context.Winding = 1;
+                    for (var i = 0; i < Shape.Count; ++i)
+                        if (Windings[i] > 0 && ContourSd[i].Dist > sd.Dist &&
+                            Math.Abs(ContourSd[i].Dist) < Math.Abs(context.NegDist))
+                            sd = ContourSd[i];
+                }
+                else if (context.NegDist <= 0 && Math.Abs(context.NegDist) <= Math.Abs(context.PosDist))
+                {
+                    sd.Dist = context.NegDist;
+                    context.Winding = -1;
+                    for (var i = 0; i < Shape.Count; ++i)
+                        if (Windings[i] < 0 && ContourSd[i].Dist < sd.Dist &&
+                            Math.Abs(ContourSd[i].Dist) < Math.Abs(context.PosDist))
+                            sd = ContourSd[i];
+                }
+
+                for (var i = 0; i < Shape.Count; ++i)
+                    if (Windings[i] != context.Winding && Math.Abs(ContourSd[i].Dist) < Math.Abs(sd.Dist))
+                        sd = ContourSd[i];
+                return sd;
+            }
+
+            protected abstract TPixel ComputePixel(ref InstanceContext ctx);
+
+            protected struct InstanceContext
+            {
+                internal Vector2 P;
+                internal double NegDist, PosDist;
+                internal int Winding;
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                internal void UpdateDistance(int winding, double minDistance)
+                {
+                    if (winding > 0 && minDistance >= 0 && Math.Abs(minDistance) < Math.Abs(PosDist))
+                        PosDist = minDistance;
+                    if (winding < 0 && minDistance <= 0 && Math.Abs(minDistance) < Math.Abs(NegDist))
+                        NegDist = minDistance;
+                }
+            }
+        }
+
+        private class MsdfImpl : Overlapping<MultiDistance, FloatRgb>, IMsdf
+        {
+            private static readonly MultiDistance Infinite = new MultiDistance
+            {
+                B = SignedDistance.Infinite.Distance,
+                G = SignedDistance.Infinite.Distance,
+                Med = SignedDistance.Infinite.Distance,
+                R = SignedDistance.Infinite.Distance
+            };
+
+            public double EdgeThreshold { private get; set; } = 1.00000001;
+
+            public override void Compute()
+            {
+                base.Compute();
+                if (EdgeThreshold > 0)
+                    MsdfErrorCorrection(Output, EdgeThreshold / (Scale * Range));
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            protected override FloatRgb ComputePixel(ref InstanceContext ctx)
+            {
+                EdgePoint sr = EdgePoint.Default, sg = EdgePoint.Default, sb = EdgePoint.Default;
+                var d = Math.Abs(SignedDistance.Infinite.Distance);
+
+                for (var i = 0; i < Shape.Count; ++i)
+                {
+                    EdgePoint r = EdgePoint.Default, g = EdgePoint.Default, b = EdgePoint.Default;
+
+                    MsdfScanContourEdges(Shape[i], ctx.P, ref r, ref g, ref b);
+
+                    if (r.MinDistance < sr.MinDistance)
+                        sr = r;
+                    if (g.MinDistance < sg.MinDistance)
+                        sg = g;
+                    if (b.MinDistance < sb.MinDistance)
+                        sb = b;
+
+                    var medMinDistance = Math.Abs(Arithmetic.Median(r.MinDistance.Distance,
+                        g.MinDistance.Distance,
+                        b.MinDistance.Distance));
+
+                    if (medMinDistance < d)
+                    {
+                        d = medMinDistance;
+                        ctx.Winding = -Windings[i];
+                    }
+
+                    r.NearEdge?.DistanceToPseudoDistance(ref r.MinDistance, ctx.P, r.NearParam);
+                    g.NearEdge?.DistanceToPseudoDistance(ref g.MinDistance, ctx.P, g.NearParam);
+                    b.NearEdge?.DistanceToPseudoDistance(ref b.MinDistance, ctx.P, b.NearParam);
+                    medMinDistance = Arithmetic.Median(r.MinDistance.Distance, g.MinDistance.Distance,
+                        b.MinDistance.Distance);
+                    ContourSd[i].R = r.MinDistance.Distance;
+                    ContourSd[i].G = g.MinDistance.Distance;
+                    ContourSd[i].B = b.MinDistance.Distance;
+                    ContourSd[i].Med = medMinDistance;
+                    ctx.UpdateDistance(Windings[i], medMinDistance);
+                }
+
+                sr.NearEdge?.DistanceToPseudoDistance(ref sr.MinDistance, ctx.P, sr.NearParam);
+                sg.NearEdge?.DistanceToPseudoDistance(ref sg.MinDistance, ctx.P, sg.NearParam);
+                sb.NearEdge?.DistanceToPseudoDistance(ref sb.MinDistance, ctx.P, sb.NearParam);
+
+                var msd = ComputeSd(Infinite, ref ctx);
+
+                if (Arithmetic.Median(sr.MinDistance.Distance, sg.MinDistance.Distance, sb.MinDistance.Distance) ==
+                    msd.Med)
+                {
+                    msd.R = sr.MinDistance.Distance;
+                    msd.G = sg.MinDistance.Distance;
+                    msd.B = sb.MinDistance.Distance;
+                }
+
+                return new FloatRgb
+                {
+                    R = (float) (msd.R / Range + .5),
+                    G = (float) (msd.G / Range + .5),
+                    B = (float) (msd.B / Range + .5)
+                };
+            }
+        }
+
+        private abstract class SdfImplBase : Overlapping<SingleDistance, float>, ISdf
+        {
+            protected static readonly SingleDistance Infinite = new SingleDistance
+                {Dist = SignedDistance.Infinite.Distance};
+        }
+
+        private class SdfImpl : SdfImplBase
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            protected override float ComputePixel(ref InstanceContext ctx)
+            {
+                double dummy = 0;
+                for (var i = 0; i < Shape.Count; ++i)
+                {
+                    var minDistance = SignedDistance.Infinite;
+                    foreach (var edge in Shape[i])
+                    {
+                        var distance = edge.SignedDistance(ctx.P, ref dummy);
+                        if (distance < minDistance)
+                            minDistance = distance;
+                    }
+
+                    ContourSd[i] = new SingleDistance {Dist = minDistance.Distance};
+                    ctx.UpdateDistance(Windings[i], minDistance.Distance);
+                }
+
+                return (float) (ComputeSd(Infinite, ref ctx).Dist / Range + 0.5);
+            }
+        }
+
+        private class PseudoSdfImpl : SdfImplBase
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            protected override float ComputePixel(ref InstanceContext ctx)
+            {
+                var sd = SignedDistance.Infinite.Distance;
+                for (var i = 0; i < Shape.Count; ++i)
+                {
+                    var minDistance = SignedDistance.Infinite;
+                    EdgeSegment nearEdge = null;
+                    double nearParam = 0;
+                    foreach (var edge in Shape[i])
+                    {
+                        double param = 0;
+                        var distance = edge.SignedDistance(ctx.P, ref param);
+                        if (distance < minDistance)
+                        {
+                            minDistance = distance;
+                            nearEdge = edge;
+                            nearParam = param;
+                        }
+                    }
+
+                    if (Math.Abs(minDistance.Distance) < Math.Abs(sd))
+                    {
+                        sd = minDistance.Distance;
+                        ctx.Winding = -Windings[i];
+                    }
+
+                    nearEdge?.DistanceToPseudoDistance(ref minDistance, ctx.P, nearParam);
+                    ContourSd[i] = new SingleDistance {Dist = minDistance.Distance};
+                    ctx.UpdateDistance(Windings[i], minDistance.Distance);
+                }
+
+                return (float) (ComputeSd(Infinite, ref ctx).Dist / Range + 0.5);
+            }
+        }
+
+        private struct MultiDistance : IDistance
+        {
+            internal double R, G, B;
+            internal double Med;
+
+            public double Dist
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => Med;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                set => Med = value;
             }
         }
 
         private struct EdgePoint
         {
-            public static readonly EdgePoint Default = new EdgePoint
+            internal static readonly EdgePoint Default = new EdgePoint
             {
                 MinDistance = SignedDistance.Infinite, NearEdge = null, NearParam = 0
             };
-            public SignedDistance MinDistance;
-            public EdgeSegment NearEdge;
-            public double NearParam;
+
+            internal SignedDistance MinDistance;
+            internal EdgeSegment NearEdge;
+            internal double NearParam;
         }
     }
 }
