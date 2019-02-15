@@ -12,12 +12,12 @@ namespace Msdfgen
             Color = edgeColor;
         }
 
-        protected static void PointBounds(Vector2 p, ref double l, ref double b, ref double r, ref double t)
+        protected static void PointBounds(Vector2 p, double[] box)
         {
-            if (p.X < l) l = p.X;
-            if (p.Y < b) b = p.Y;
-            if (p.X > r) r = p.X;
-            if (p.Y > t) t = p.Y;
+            if (p.X < box[0]) box[0] = p.X;
+            if (p.Y < box[1]) box[1] = p.Y;
+            if (p.X > box[2]) box[2] = p.X;
+            if (p.Y > box[3]) box[3] = p.Y;
         }
 
         /// Returns the point on the edge specified by the parameter (between 0 and 1).
@@ -65,7 +65,7 @@ namespace Msdfgen
         }
 
         /// Adjusts the bounding box to fit the edge segment.
-        public abstract void Bounds(ref double l, ref double b, ref double r, ref double t);
+        public abstract void Bounds(double[] box);
 
         /// Moves the start point of the edge segment.
         public abstract void MoveStartPoint(Vector2 to);
@@ -106,7 +106,7 @@ namespace Msdfgen
             var endpointDistance = eq.Length();
             if (param > 0 && param < 1)
             {
-                var orthoDistance = Vector2.Dot(ab.GetOrthonormal(false), aq);
+                var orthoDistance = Vector2.Dot(ab.GetOrthonormal(), aq);
                 if (Math.Abs(orthoDistance) < endpointDistance)
                     return new SignedDistance(orthoDistance, 0);
             }
@@ -115,10 +115,10 @@ namespace Msdfgen
                 Math.Abs(Vector2.Dot(ab.Normalize(), eq.Normalize())));
         }
 
-        public override void Bounds(ref double l, ref double b, ref double r, ref double t)
+        public override void Bounds(double[] box)
         {
-            PointBounds(_p[0], ref l, ref b, ref r, ref t);
-            PointBounds(_p[1], ref l, ref b, ref r, ref t);
+            PointBounds(_p[0], box);
+            PointBounds(_p[1], box);
         }
 
         public override void MoveStartPoint(Vector2 to)
@@ -145,12 +145,12 @@ namespace Msdfgen
     {
         private readonly Vector2[] _p;
 
-        public QuadraticSegment(Vector2 p0, Vector2 p1, Vector2 p2, EdgeColor edgeColor = EdgeColor.White) :
+        public QuadraticSegment(EdgeColor edgeColor, params Vector2[] p) :
             base(edgeColor)
         {
-            if (p1 == p0 || p1 == p2)
-                p1 = 0.5 * (p0 + p2);
-            _p = new[] {p0, p1, p2};
+            if (p[1] == p[0] || p[1] == p[2])
+                p[1] = 0.5 * (p[0] + p[2]);
+            _p = p;
         }
 
         public override Vector2 Point(double param)
@@ -168,12 +168,15 @@ namespace Msdfgen
             var qa = _p[0] - origin;
             var ab = _p[1] - _p[0];
             var br = _p[0] + _p[2] - _p[1] - _p[1];
-            var a = Vector2.Dot(br, br);
-            var b = 3 * Vector2.Dot(ab, br);
-            var c = 2 * Vector2.Dot(ab, ab) + Vector2.Dot(qa, br);
-            var d = Vector2.Dot(qa, ab);
+            var coefficient = stackalloc[]
+            {
+                Vector2.Dot(br, br),
+                3 * Vector2.Dot(ab, br),
+                2 * Vector2.Dot(ab, ab) + Vector2.Dot(qa, br),
+                Vector2.Dot(qa, ab)
+            };
             var t = stackalloc double[3];
-            var solutions = Equations.SolveCubic(t, a, b, c, d);
+            var solutions = Equations.SolveCubic(t, coefficient);
 
             var minDistance = Arithmetic.NonZeroSign(Vector2.Cross(ab, qa)) * qa.Length(); // distance from A
             param = -Vector2.Dot(qa, ab) / Vector2.Dot(ab, ab);
@@ -209,23 +212,23 @@ namespace Msdfgen
         }
 
 
-        public override void Bounds(ref double l, ref double b, ref double r, ref double t)
+        public override void Bounds(double[] box)
         {
-            PointBounds(_p[0], ref l, ref b, ref r, ref t);
-            PointBounds(_p[2], ref l, ref b, ref r, ref t);
+            PointBounds(_p[0], box);
+            PointBounds(_p[2], box);
             var bot = _p[1] - _p[0] - (_p[2] - _p[1]);
             if (bot.X != 0)
             {
                 var param = (_p[1].X - _p[0].X) / bot.X;
                 if (param > 0 && param < 1)
-                    PointBounds(Point(param), ref l, ref b, ref r, ref t);
+                    PointBounds(Point(param), box);
             }
 
             if (bot.Y != 0)
             {
                 var param = (_p[1].Y - _p[0].Y) / bot.Y;
                 if (param > 0 && param < 1)
-                    PointBounds(Point(param), ref l, ref b, ref r, ref t);
+                    PointBounds(Point(param), box);
             }
         }
 
@@ -254,12 +257,11 @@ namespace Msdfgen
 
         public override void SplitInThirds(out EdgeSegment part1, out EdgeSegment part2, out EdgeSegment part3)
         {
-            part1 = new QuadraticSegment(_p[0], Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Point(1.0 / 3.0), Color);
-            part2 = new QuadraticSegment(Point(1.0 / 3.0),
-                Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetic.Mix(_p[1], _p[2], 4.0 / 9.0),
-                    0.5),
-                Point(2 / 3.0), Color);
-            part3 = new QuadraticSegment(Point(2.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), _p[2], Color);
+            part1 = new QuadraticSegment(Color, _p[0], Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Point(1.0 / 3.0));
+            part2 = new QuadraticSegment(Color, Point(1.0 / 3.0),
+                Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetic.Mix(_p[1], _p[2], 4.0 / 9.0), 0.5),
+                Point(2 / 3.0));
+            part3 = new QuadraticSegment(Color, Point(2.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), _p[2]);
         }
     }
 
@@ -273,10 +275,10 @@ namespace Msdfgen
 
         private readonly Vector2[] _p;
 
-        public CubicSegment(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, EdgeColor edgeColor = EdgeColor.White) :
+        public CubicSegment(EdgeColor edgeColor, params Vector2[] p) :
             base(edgeColor)
         {
-            _p = new[] {p0, p1, p2, p3};
+            _p = p;
         }
 
         public override Vector2 Point(double param)
@@ -353,22 +355,30 @@ namespace Msdfgen
                 Math.Abs(Vector2.Dot(Direction(1).Normalize(), (_p[3] - origin).Normalize())));
         }
 
-        public override unsafe void Bounds(ref double l, ref double b, ref double r, ref double t)
+        public override unsafe void Bounds(double[] box)
         {
-            PointBounds(_p[0], ref l, ref b, ref r, ref t);
-            PointBounds(_p[3], ref l, ref b, ref r, ref t);
+            PointBounds(_p[0], box);
+            PointBounds(_p[3], box);
             var a0 = _p[1] - _p[0];
             var a1 = 2 * (_p[2] - _p[1] - a0);
             var a2 = _p[3] - 3 * _p[2] + 3 * _p[1] - _p[0];
+            {
+                var co = stackalloc[] {a2.X, a1.X, a0.X};
+                BoundComputeAxis(box, co);
+            }
+            {
+                var co = stackalloc[] {a2.Y, a1.Y, a0.Y};
+                BoundComputeAxis(box, co);
+            }
+        }
+
+        private unsafe void BoundComputeAxis(double[] box, double* co)
+        {
             var param = stackalloc double[2];
-            var solutions = Equations.SolveQuadratic(param, a2.X, a1.X, a0.X);
+            var solutions = Equations.SolveQuadratic(param, co);
             for (var i = 0; i < solutions; ++i)
                 if (param[i] > 0 && param[i] < 1)
-                    PointBounds(Point(param[i]), ref l, ref b, ref r, ref t);
-            solutions = Equations.SolveQuadratic(param, a2.Y, a1.Y, a0.Y);
-            for (var i = 0; i < solutions; ++i)
-                if (param[i] > 0 && param[i] < 1)
-                    PointBounds(Point(param[i]), ref l, ref b, ref r, ref t);
+                    PointBounds(Point(param[i]), box);
         }
 
         public override void MoveStartPoint(Vector2 to)
@@ -385,10 +395,10 @@ namespace Msdfgen
 
         public override void SplitInThirds(out EdgeSegment part1, out EdgeSegment part2, out EdgeSegment part3)
         {
-            part1 = new CubicSegment(_p[0], _p[0] == _p[1] ? _p[0] : Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0),
+            part1 = new CubicSegment(Color, _p[0], _p[0] == _p[1] ? _p[0] : Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0),
                 Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 1.0 / 3.0),
-                    1.0 / 3.0), Point(1.0 / 3.0), Color);
-            part2 = new CubicSegment(Point(1.0 / 3.0),
+                    1.0 / 3.0), Point(1.0 / 3.0));
+            part2 = new CubicSegment(Color, Point(1.0 / 3.0),
                 Arithmetic.Mix(
                     Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 1.0 / 3.0),
                         1.0 / 3.0),
@@ -399,11 +409,11 @@ namespace Msdfgen
                         2.0 / 3.0),
                     Arithmetic.Mix(Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0),
                         2.0 / 3.0), 1.0 / 3.0),
-                Point(2.0 / 3.0), Color);
-            part3 = new CubicSegment(Point(2.0 / 3.0),
+                Point(2.0 / 3.0));
+            part3 = new CubicSegment(Color, Point(2.0 / 3.0),
                 Arithmetic.Mix(Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0),
                     2.0 / 3.0),
-                _p[2] == _p[3] ? _p[3] : Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0), _p[3], Color);
+                _p[2] == _p[3] ? _p[3] : Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0), _p[3]);
         }
     }
 }

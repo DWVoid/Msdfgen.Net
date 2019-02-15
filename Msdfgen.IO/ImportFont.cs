@@ -97,14 +97,14 @@ namespace Msdfgen.IO
 
             internal int FtConicTo(ref FTVector control, ref FTVector to, IntPtr context)
             {
-                _contour.Add(new QuadraticSegment(_position, FtPoint2(ref control), FtPoint2(ref to)));
+                _contour.Add(new QuadraticSegment(EdgeColor.White,_position, FtPoint2(ref control), FtPoint2(ref to)));
                 _position = FtPoint2(ref to);
                 return 0;
             }
 
             internal int FtCubicTo(ref FTVector control1, ref FTVector control2, ref FTVector to, IntPtr context)
             {
-                _contour.Add(new CubicSegment(_position, FtPoint2(ref control1), FtPoint2(ref control2),FtPoint2(ref to)));
+                _contour.Add(new CubicSegment(EdgeColor.White, _position, FtPoint2(ref control1), FtPoint2(ref control2),FtPoint2(ref to)));
                 _position = FtPoint2(ref to);
                 return 0;
             }

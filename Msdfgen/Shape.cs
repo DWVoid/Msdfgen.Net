@@ -44,10 +44,11 @@ namespace Msdfgen
         }
 
         /// Computes the shape's bounding box.
-        public void Bounds(ref double l, ref double b, ref double r, ref double t)
+        /// double[left, bottom, right, top]
+        public void Bounds(double[] box)
         {
             foreach (var contour in this)
-                contour.Bounds(ref l, ref b, ref r, ref t);
+                contour.Bounds(box);
         }
     }
 }

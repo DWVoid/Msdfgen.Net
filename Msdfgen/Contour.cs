@@ -6,9 +6,9 @@ namespace Msdfgen
     public class Contour : List<EdgeSegment>
     {
         /// Computes the bounding box of the contour.
-        public void Bounds(ref double l, ref double b, ref double r, ref double t)
+        public void Bounds(double[] box)
         {
-            foreach (var edge in this) edge.Bounds(ref l, ref b, ref r, ref t);
+            foreach (var edge in this) edge.Bounds(box);
         }
 
         /// Computes the winding of the contour. Returns 1 if positive, -1 if negative.
@@ -16,46 +16,52 @@ namespace Msdfgen
         {
             if (Count == 0)
                 return 0;
-            double total = 0;
+            double total;
             switch (Count)
             {
                 case 1:
-                {
-                    Vector2 a = this[0].Point(0),
-                        b = this[0].Point(1.0 / 3.0),
-                        c = this[0].Point(2.0 / 3.0);
-                    total += Shoelace(a, b);
-                    total += Shoelace(b, c);
-                    total += Shoelace(c, a);
+                    total = WindingSingle();
                     break;
-                }
                 case 2:
-                {
-                    Vector2 a = this[0].Point(0),
-                        b = this[0].Point(.5),
-                        c = this[1].Point(0),
-                        d = this[1].Point(.5);
-                    total += Shoelace(a, b);
-                    total += Shoelace(b, c);
-                    total += Shoelace(c, d);
-                    total += Shoelace(d, a);
+                    total = WindingDouble();
                     break;
-                }
                 default:
-                {
-                    var prev = this[Count - 1].Point(0);
-                    foreach (var edge in this)
-                    {
-                        var cur = edge.Point(0);
-                        total += Shoelace(prev, cur);
-                        prev = cur;
-                    }
-
+                    total = WindingMultiple();
                     break;
-                }
             }
 
             return Arithmetic.Sign(total);
+        }
+
+        private double WindingMultiple()
+        {
+            var total = 0.0;
+            var prev = this[Count - 1].Point(0);
+            foreach (var edge in this)
+            {
+                var cur = edge.Point(0);
+                total += Shoelace(prev, cur);
+                prev = cur;
+            }
+
+            return total;
+        }
+
+        private double WindingDouble()
+        {
+            Vector2 a = this[0].Point(0),
+                b = this[0].Point(.5),
+                c = this[1].Point(0),
+                d = this[1].Point(.5);
+            return Shoelace(a, b) + Shoelace(b, c) + Shoelace(c, d) + Shoelace(d, a);
+        }
+
+        private double WindingSingle()
+        {
+            Vector2 a = this[0].Point(0),
+                b = this[0].Point(1.0 / 3.0),
+                c = this[0].Point(2.0 / 3.0);
+            return Shoelace(a, b) + Shoelace(b, c) + Shoelace(c, a);
         }
 
         private static double Shoelace(Vector2 a, Vector2 b)

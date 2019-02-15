@@ -53,46 +53,20 @@ namespace Msdfgen
             return Math.Sqrt(X * X + Y * Y);
         }
 
-        /// Returns the angle of the vector in radians (atan2).
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public double Direction()
-        {
-            return Math.Atan2(Y, X);
-        }
-
         /// Returns the normalized vector - one that has the same direction but unit length.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector2 Normalize(bool allowZero = false)
+        public Vector2 Normalize()
         {
             var len = Length();
-            return len == 0 ? new Vector2(0, allowZero ? 0 : 1) : new Vector2(X / len, Y / len);
-        }
-
-        /// Returns a vector with the same length that is orthogonal to this one.
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector2 GetOrthogonal(bool polarity = true)
-        {
-            return polarity ? new Vector2(-Y, X) : new Vector2(Y, -X);
+            return len == 0 ? new Vector2(0, 1) : new Vector2(X / len, Y / len);
         }
 
         /// Returns a vector with unit length that is orthogonal to this one
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector2 GetOrthonormal(bool polarity = true, bool allowZero = false)
+        public Vector2 GetOrthonormal()
         {
             var len = Length();
-            if (len == 0)
-                return polarity ? new Vector2(0, allowZero ? 0 : 1) : new Vector2(0, allowZero ? 0 : -1);
-            return polarity ? new Vector2(-Y / len, X / len) : new Vector2(Y / len, -X / len);
-        }
-
-        /// Returns a vector projected along this one.
-        public Vector2 Project(Vector2 vector, bool positive = false)
-        {
-            var n = Normalize(true);
-            var t = Dot(vector, n);
-            if (positive && t <= 0)
-                return new Vector2();
-            return t * n;
+            return len == 0 ? new Vector2(0, -1) : new Vector2(Y / len, -X / len);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

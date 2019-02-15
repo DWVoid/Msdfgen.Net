@@ -1,42 +1,51 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Msdfgen
 {
     public static class Equations
     {
-        public static unsafe int SolveQuadratic(double* x, double a, double b, double c)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int SolveLinear(double* x, double* co)
         {
-            if (Math.Abs(a) < 1e-14)
+            if (Math.Abs(co[0]) < 1e-14)
             {
-                if (Math.Abs(b) < 1e-14)
-                {
-                    if (c == 0)
-                        return -1;
-                    return 0;
-                }
-
-                x[0] = -c / b;
-                return 1;
+                if (co[1] == 0)
+                    return -1;
+                return 0;
             }
 
-            var dscr = b * b - 4 * a * c;
+            x[0] = -co[1] / co[0];
+            return 1;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int SolveQuadratic(double* x, double* co)
+        {
+            if (Math.Abs(co[0]) < 1e-14)
+            {
+                return SolveLinear(x, co + 1);
+            }
+
+            var dscr = co[1] * co[1] - 4 * co[0] * co[2];
             if (dscr > 0)
             {
                 dscr = Math.Sqrt(dscr);
-                x[0] = (-b + dscr) / (2 * a);
-                x[1] = (-b - dscr) / (2 * a);
+                x[0] = (-co[1] + dscr) / (2 * co[0]);
+                x[1] = (-co[1] - dscr) / (2 * co[0]);
                 return 2;
             }
 
             if (dscr == 0)
             {
-                x[0] = -b / (2 * a);
+                x[0] = -co[1] / (2 * co[0]);
                 return 1;
             }
 
             return 0;
         }
-
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe int SolveCubicNormed(double* x, double a, double b, double c)
         {
             var a2 = a * a;
@@ -67,10 +76,11 @@ namespace Msdfgen
             x[2] = 0.5 * Math.Sqrt(3.0) * (aa - bb);
             return Math.Abs(x[2]) < 1e-14 ? 2 : 1;
         }
-
-        public static unsafe int SolveCubic(double* x, double a, double b, double c, double d)
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int SolveCubic(double* x, double* co)
         {
-            return Math.Abs(a) < 1e-14 ? SolveQuadratic(x, b, c, d) : SolveCubicNormed(x, b / a, c / a, d / a);
+            return Math.Abs(co[0]) < 1e-14 ? SolveQuadratic(x, co + 1) : SolveCubicNormed(x, co[1] / co[0], co[2] / co[0], co[3] / co[0]);
         }
     }
 }
