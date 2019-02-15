@@ -27,7 +27,7 @@ namespace Msdfgen
                 return;
             }
 
-            var shifted = (int) color << (1 + (int) (seed & 1));
+            var shifted = (int) color <<  (int)(1 + (seed & 1));
             color = (EdgeColor) ((shifted | (shifted >> 3)) & (int) EdgeColor.White);
             seed >>= 1;
         }
@@ -47,7 +47,7 @@ namespace Msdfgen
                 corners.Clear();
                 if (contour.Edges.Count > 0)
                 {
-                    var prevDirection = contour.Edges[contour.Edges.Count - 2].Segment.Direction(1);
+                    var prevDirection = contour.Edges[contour.Edges.Count - 1].Segment.Direction(1);
                     var index = 0;
                     foreach (var edge in contour.Edges)
                     {
@@ -69,7 +69,7 @@ namespace Msdfgen
                     // "Teardrop" case
                     case 1:
                     {
-                        var colors = stackalloc[] {EdgeColor.White, EdgeColor.White};
+                        var colors = stackalloc[] {EdgeColor.White, EdgeColor.White, EdgeColor.Black};
                         SwitchColor(ref colors[0], ref seed);
                         colors[2] = colors[0];
                         SwitchColor(ref colors[2], ref seed);
@@ -126,8 +126,7 @@ namespace Msdfgen
                             if (spline + 1 < cornerCount && corners[spline + 1] == index)
                             {
                                 ++spline;
-                                SwitchColor(ref color, ref seed,
-                                    (EdgeColor) (spline == cornerCount - 1 ? 1 : 0 * (int) initialColor));
+                                SwitchColor(ref color, ref seed,spline == cornerCount - 1 ? initialColor : 0);
                             }
 
                             contour.Edges[index].Segment.Color = color;

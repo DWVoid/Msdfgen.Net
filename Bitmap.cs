@@ -9,10 +9,6 @@ namespace Msdfgen
     {
         private readonly T[,] _content;
 
-        public Bitmap()
-        {
-        }
-
         public Bitmap(int width, int height)
         {
             Width = width;

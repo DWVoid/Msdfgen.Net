@@ -3,10 +3,6 @@ namespace Msdfgen
     /// Container for a single edge of dynamic type.
     public class EdgeHolder
     {
-        public EdgeHolder()
-        {
-        }
-
         public EdgeHolder(EdgeSegment segment)
         {
             Segment = segment;

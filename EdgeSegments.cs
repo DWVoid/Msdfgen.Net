@@ -25,9 +25,6 @@ namespace Msdfgen
             if (p.Y > t) t = p.Y;
         }
 
-        /// Creates a copy of the edge segment.
-        public abstract EdgeSegment Clone();
-
         /// Returns the point on the edge specified by the parameter (between 0 and 1).
         public abstract Vector2 Point(double param);
 
@@ -95,11 +92,6 @@ namespace Msdfgen
             _p = new[] {p0, p1};
         }
 
-        public override EdgeSegment Clone()
-        {
-            return new LinearSegment(_p[0], _p[1], Color);
-        }
-
         public override Vector2 Point(double param)
         {
             return Arithmetics.Mix(_p[0], _p[1], param);
@@ -164,11 +156,6 @@ namespace Msdfgen
             if (p1 == p0 || p1 == p2)
                 p1 = 0.5 * (p0 + p2);
             _p = new[] {p0, p1, p2};
-        }
-
-        public override EdgeSegment Clone()
-        {
-            return new QuadraticSegment(_p[0], _p[1], _p[2], Color);
         }
 
         public override Vector2 Point(double param)
@@ -290,11 +277,6 @@ namespace Msdfgen
             base(edgeColor)
         {
             _p = new[] {p0, p1, p2, p3};
-        }
-
-        public override EdgeSegment Clone()
-        {
-            return new CubicSegment(_p[0], _p[1], _p[2], _p[3], Color);
         }
 
         public override Vector2 Point(double param)

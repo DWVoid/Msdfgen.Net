@@ -94,63 +94,61 @@ namespace Msdfgen
             var windings = new List<int>(contourCount);
             foreach (var contour in shape.Contours)
                 windings.Add(contour.Winding());
+            var contourSd = new double[contourCount];
+
+            for (var y = 0; y < h; ++y)
             {
-                var contourSd = new double[contourCount];
-
-                for (var y = 0; y < h; ++y)
+                var row = shape.InverseYAxis ? h - y - 1 : y;
+                for (var x = 0; x < w; ++x)
                 {
-                    var row = shape.InverseYAxis ? h - y - 1 : y;
-                    for (var x = 0; x < w; ++x)
+                    double dummy = 0;
+                    var p = new Vector2(x + .5, y + .5) / scale - translate;
+                    var negDist = -SignedDistance.Infinite.Distance;
+                    var posDist = SignedDistance.Infinite.Distance;
+                    var winding = 0;
+
+                    for (var i = 0; i < contourCount; ++i)
                     {
-                        double dummy = 0;
-                        var p = new Vector2(x + .5, y + .5) / scale - translate;
-                        var negDist = -SignedDistance.Infinite.Distance;
-                        var posDist = SignedDistance.Infinite.Distance;
-                        var winding = 0;
-
-                        for (var i = 0; i < contourCount; ++i)
+                        var minDistance = SignedDistance.Infinite;
+                        foreach (var edge in shape.Contours[i].Edges)
                         {
-                            var minDistance = SignedDistance.Infinite;
-                            foreach (var edge in shape.Contours[i].Edges)
-                            {
-                                var distance = edge.Segment.SignedDistance(p, ref dummy);
-                                if (distance < minDistance)
-                                    minDistance = distance;
-                            }
-
-                            contourSd[i] = minDistance.Distance;
-                            if (windings[i] > 0 && minDistance.Distance >= 0 &&
-                                Math.Abs(minDistance.Distance) < Math.Abs(posDist))
-                                posDist = minDistance.Distance;
-                            if (windings[i] < 0 && minDistance.Distance <= 0 &&
-                                Math.Abs(minDistance.Distance) < Math.Abs(negDist))
-                                negDist = minDistance.Distance;
+                            var distance = edge.Segment.SignedDistance(p, ref dummy);
+                            if (distance < minDistance)
+                                minDistance = distance;
                         }
 
-                        var sd = SignedDistance.Infinite.Distance;
-                        if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
-                        {
-                            sd = posDist;
-                            winding = 1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] > 0 && contourSd[i] > sd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
-                                    sd = contourSd[i];
-                        }
-                        else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                        {
-                            sd = negDist;
-                            winding = -1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] < 0 && contourSd[i] < sd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
-                                    sd = contourSd[i];
-                        }
-
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(sd))
-                                sd = contourSd[i];
-
-                        output[x, row] = (float) (sd / range + 0.5);
+                        contourSd[i] = minDistance.Distance;
+                        if (windings[i] > 0 && minDistance.Distance >= 0 &&
+                            Math.Abs(minDistance.Distance) < Math.Abs(posDist))
+                            posDist = minDistance.Distance;
+                        if (windings[i] < 0 && minDistance.Distance <= 0 &&
+                            Math.Abs(minDistance.Distance) < Math.Abs(negDist))
+                            negDist = minDistance.Distance;
                     }
+
+                    var sd = SignedDistance.Infinite.Distance;
+                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
+                    {
+                        sd = posDist;
+                        winding = 1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] > 0 && contourSd[i] > sd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
+                                sd = contourSd[i];
+                    }
+                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
+                    {
+                        sd = negDist;
+                        winding = -1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] < 0 && contourSd[i] < sd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
+                                sd = contourSd[i];
+                    }
+
+                    for (var i = 0; i < contourCount; ++i)
+                        if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(sd))
+                            sd = contourSd[i];
+
+                    output[x, row] = (float) (sd / range + 0.5);
                 }
             }
         }
@@ -165,76 +163,74 @@ namespace Msdfgen
             foreach (var contour in shape.Contours)
                 windings.Add(contour.Winding());
 
+            var contourSd = new double[contourCount];
+            for (var y = 0; y < h; ++y)
             {
-                var contourSd = new double[contourCount];
-                for (var y = 0; y < h; ++y)
+                var row = shape.InverseYAxis ? h - y - 1 : y;
+                for (var x = 0; x < w; ++x)
                 {
-                    var row = shape.InverseYAxis ? h - y - 1 : y;
-                    for (var x = 0; x < w; ++x)
+                    var p = new Vector2(x + .5, y + .5) / scale - translate;
+                    var sd = SignedDistance.Infinite.Distance;
+                    var negDist = -SignedDistance.Infinite.Distance;
+                    var posDist = SignedDistance.Infinite.Distance;
+                    var winding = 0;
+
+                    for (var i = 0; i < contourCount; ++i)
                     {
-                        var p = new Vector2(x + .5, y + .5) / scale - translate;
-                        var sd = SignedDistance.Infinite.Distance;
-                        var negDist = -SignedDistance.Infinite.Distance;
-                        var posDist = SignedDistance.Infinite.Distance;
-                        var winding = 0;
-
-                        for (var i = 0; i < contourCount; ++i)
+                        var minDistance = SignedDistance.Infinite;
+                        EdgeHolder nearEdge = null;
+                        double nearParam = 0;
+                        foreach (var edge in shape.Contours[i].Edges)
                         {
-                            var minDistance = SignedDistance.Infinite;
-                            EdgeHolder nearEdge = null;
-                            double nearParam = 0;
-                            foreach (var edge in shape.Contours[i].Edges)
+                            double param = 0;
+                            var distance = edge.Segment.SignedDistance(p, ref param);
+                            if (distance < minDistance)
                             {
-                                double param = 0;
-                                var distance = edge.Segment.SignedDistance(p, ref param);
-                                if (distance < minDistance)
-                                {
-                                    minDistance = distance;
-                                    nearEdge = edge;
-                                    nearParam = param;
-                                }
+                                minDistance = distance;
+                                nearEdge = edge;
+                                nearParam = param;
                             }
-
-                            if (Math.Abs(minDistance.Distance) < Math.Abs(sd))
-                            {
-                                sd = minDistance.Distance;
-                                winding = -windings[i];
-                            }
-
-                            nearEdge?.Segment.DistanceToPseudoDistance(ref minDistance, p, nearParam);
-                            contourSd[i] = minDistance.Distance;
-                            if (windings[i] > 0 && minDistance.Distance >= 0 &&
-                                Math.Abs(minDistance.Distance) < Math.Abs(posDist))
-                                posDist = minDistance.Distance;
-                            if (windings[i] < 0 && minDistance.Distance <= 0 &&
-                                Math.Abs(minDistance.Distance) < Math.Abs(negDist))
-                                negDist = minDistance.Distance;
                         }
 
-                        var psd = SignedDistance.Infinite.Distance;
-                        if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
+                        if (Math.Abs(minDistance.Distance) < Math.Abs(sd))
                         {
-                            psd = posDist;
-                            winding = 1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] > 0 && contourSd[i] > psd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
-                                    psd = contourSd[i];
-                        }
-                        else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                        {
-                            psd = negDist;
-                            winding = -1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] < 0 && contourSd[i] < psd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
-                                    psd = contourSd[i];
+                            sd = minDistance.Distance;
+                            winding = -windings[i];
                         }
 
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(psd))
-                                psd = contourSd[i];
-
-                        output[x, row] = (float) (psd / range + 0.5);
+                        nearEdge?.Segment.DistanceToPseudoDistance(ref minDistance, p, nearParam);
+                        contourSd[i] = minDistance.Distance;
+                        if (windings[i] > 0 && minDistance.Distance >= 0 &&
+                            Math.Abs(minDistance.Distance) < Math.Abs(posDist))
+                            posDist = minDistance.Distance;
+                        if (windings[i] < 0 && minDistance.Distance <= 0 &&
+                            Math.Abs(minDistance.Distance) < Math.Abs(negDist))
+                            negDist = minDistance.Distance;
                     }
+
+                    var psd = SignedDistance.Infinite.Distance;
+                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
+                    {
+                        psd = posDist;
+                        winding = 1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] > 0 && contourSd[i] > psd && Math.Abs(contourSd[i]) < Math.Abs(negDist))
+                                psd = contourSd[i];
+                    }
+                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
+                    {
+                        psd = negDist;
+                        winding = -1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] < 0 && contourSd[i] < psd && Math.Abs(contourSd[i]) < Math.Abs(posDist))
+                                psd = contourSd[i];
+                    }
+
+                    for (var i = 0; i < contourCount; ++i)
+                        if (windings[i] != winding && Math.Abs(contourSd[i]) < Math.Abs(psd))
+                            psd = contourSd[i];
+
+                    output[x, row] = (float) (psd / range + 0.5);
                 }
             }
         }
@@ -248,128 +244,126 @@ namespace Msdfgen
             var windings = new List<int>(contourCount);
             foreach (var contour in shape.Contours)
                 windings.Add(contour.Winding());
+            var contourSd = new MultiDistance[contourCount];
+            for (var y = 0; y < h; ++y)
             {
-                var contourSd = new MultiDistance[contourCount];
-                for (var y = 0; y < h; ++y)
+                var row = shape.InverseYAxis ? h - y - 1 : y;
+                for (var x = 0; x < w; ++x)
                 {
-                    var row = shape.InverseYAxis ? h - y - 1 : y;
-                    for (var x = 0; x < w; ++x)
+                    var p = new Vector2(x + .5, y + .5) / scale - translate;
+                    EdgePoint sr, sg, sb;
+                    sr.NearEdge = sg.NearEdge = sb.NearEdge = null;
+                    sr.NearParam = sg.NearParam = sb.NearParam = 0;
+                    sr.MinDistance = sg.MinDistance = sb.MinDistance = SignedDistance.Infinite;
+                    var d = Math.Abs(SignedDistance.Infinite.Distance);
+                    var negDist = -SignedDistance.Infinite.Distance;
+                    var posDist = SignedDistance.Infinite.Distance;
+                    var winding = 0;
+
+                    for (var i = 0; i < contourCount; ++i)
                     {
-                        var p = new Vector2(x + .5, y + .5) / scale - translate;
-                        EdgePoint sr, sg, sb;
-                        sr.NearEdge = sg.NearEdge = sb.NearEdge = null;
-                        sr.NearParam = sg.NearParam = sb.NearParam = 0;
-                        sr.MinDistance = sg.MinDistance = sb.MinDistance = SignedDistance.Infinite;
-                        var d = Math.Abs(SignedDistance.Infinite.Distance);
-                        var negDist = -SignedDistance.Infinite.Distance;
-                        var posDist = SignedDistance.Infinite.Distance;
-                        var winding = 0;
+                        EdgePoint r, g, b;
+                        r.NearEdge = g.NearEdge = b.NearEdge = null;
+                        r.NearParam = g.NearParam = b.NearParam = 0;
+                        r.MinDistance = g.MinDistance = b.MinDistance = SignedDistance.Infinite;
 
-                        for (var i = 0; i < contourCount; ++i)
+                        foreach (var edge in shape.Contours[i].Edges)
                         {
-                            EdgePoint r, g, b;
-                            r.NearEdge = g.NearEdge = b.NearEdge = null;
-                            r.NearParam = g.NearParam = b.NearParam = 0;
-                            r.MinDistance = g.MinDistance = b.MinDistance = SignedDistance.Infinite;
-
-                            foreach (var edge in shape.Contours[i].Edges)
+                            double param = 0;
+                            var distance = edge.Segment.SignedDistance(p, ref param);
+                            if ((edge.Segment.Color & EdgeColor.Red) != 0 && distance < r.MinDistance)
                             {
-                                double param = 0;
-                                var distance = edge.Segment.SignedDistance(p, ref param);
-                                if ((edge.Segment.Color & EdgeColor.Red) != 0 && distance < r.MinDistance)
-                                {
-                                    r.MinDistance = distance;
-                                    r.NearEdge = edge;
-                                    r.NearParam = param;
-                                }
-
-                                if ((edge.Segment.Color & EdgeColor.Green) != 0 && distance < g.MinDistance)
-                                {
-                                    g.MinDistance = distance;
-                                    g.NearEdge = edge;
-                                    g.NearParam = param;
-                                }
-
-                                if ((edge.Segment.Color & EdgeColor.Blue) != 0 && distance < b.MinDistance)
-                                {
-                                    b.MinDistance = distance;
-                                    b.NearEdge = edge;
-                                    b.NearParam = param;
-                                }
+                                r.MinDistance = distance;
+                                r.NearEdge = edge;
+                                r.NearParam = param;
                             }
 
-                            if (r.MinDistance < sr.MinDistance)
-                                sr = r;
-                            if (g.MinDistance < sg.MinDistance)
-                                sg = g;
-                            if (b.MinDistance < sb.MinDistance)
-                                sb = b;
-
-                            var medMinDistance = Math.Abs(Arithmetics.Median(r.MinDistance.Distance,
-                                g.MinDistance.Distance,
-                                b.MinDistance.Distance));
-                            if (medMinDistance < d)
+                            if ((edge.Segment.Color & EdgeColor.Green) != 0 && distance < g.MinDistance)
                             {
-                                d = medMinDistance;
-                                winding = -windings[i];
+                                g.MinDistance = distance;
+                                g.NearEdge = edge;
+                                g.NearParam = param;
                             }
 
-                            r.NearEdge?.Segment.DistanceToPseudoDistance(ref r.MinDistance, p, r.NearParam);
-                            g.NearEdge?.Segment.DistanceToPseudoDistance(ref g.MinDistance, p, g.NearParam);
-                            b.NearEdge?.Segment.DistanceToPseudoDistance(ref b.MinDistance, p, b.NearParam);
-                            medMinDistance = Arithmetics.Median(r.MinDistance.Distance, g.MinDistance.Distance,
-                                b.MinDistance.Distance);
-                            contourSd[i].R = r.MinDistance.Distance;
-                            contourSd[i].G = g.MinDistance.Distance;
-                            contourSd[i].B = b.MinDistance.Distance;
-                            contourSd[i].Med = medMinDistance;
-                            if (windings[i] > 0 && medMinDistance >= 0 && Math.Abs(medMinDistance) < Math.Abs(posDist))
-                                posDist = medMinDistance;
-                            if (windings[i] < 0 && medMinDistance <= 0 && Math.Abs(medMinDistance) < Math.Abs(negDist))
-                                negDist = medMinDistance;
+                            if ((edge.Segment.Color & EdgeColor.Blue) != 0 && distance < b.MinDistance)
+                            {
+                                b.MinDistance = distance;
+                                b.NearEdge = edge;
+                                b.NearParam = param;
+                            }
                         }
 
-                        sr.NearEdge?.Segment.DistanceToPseudoDistance(ref sr.MinDistance, p, sr.NearParam);
-                        sg.NearEdge?.Segment.DistanceToPseudoDistance(ref sg.MinDistance, p, sg.NearParam);
-                        sb.NearEdge?.Segment.DistanceToPseudoDistance(ref sb.MinDistance, p, sb.NearParam);
+                        if (r.MinDistance < sr.MinDistance)
+                            sr = r;
+                        if (g.MinDistance < sg.MinDistance)
+                            sg = g;
+                        if (b.MinDistance < sb.MinDistance)
+                            sb = b;
 
-                        MultiDistance msd;
-                        msd.R = msd.G = msd.B = msd.Med = SignedDistance.Infinite.Distance;
-                        if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
+                        var medMinDistance = Math.Abs(Arithmetics.Median(r.MinDistance.Distance,
+                            g.MinDistance.Distance,
+                            b.MinDistance.Distance));
+                        if (medMinDistance < d)
                         {
-                            msd.Med = SignedDistance.Infinite.Distance;
-                            winding = 1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] > 0 && contourSd[i].Med > msd.Med &&
-                                    Math.Abs(contourSd[i].Med) < Math.Abs(negDist))
-                                    msd = contourSd[i];
-                        }
-                        else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
-                        {
-                            msd.Med = -SignedDistance.Infinite.Distance;
-                            winding = -1;
-                            for (var i = 0; i < contourCount; ++i)
-                                if (windings[i] < 0 && contourSd[i].Med < msd.Med &&
-                                    Math.Abs(contourSd[i].Med) < Math.Abs(posDist))
-                                    msd = contourSd[i];
+                            d = medMinDistance;
+                            winding = -windings[i];
                         }
 
-                        for (var i = 0; i < contourCount; ++i)
-                            if (windings[i] != winding && Math.Abs(contourSd[i].Med) < Math.Abs(msd.Med))
-                                msd = contourSd[i];
-                        if (Arithmetics.Median(sr.MinDistance.Distance, sg.MinDistance.Distance,
-                                sb.MinDistance.Distance) ==
-                            msd.Med)
-                        {
-                            msd.R = sr.MinDistance.Distance;
-                            msd.G = sg.MinDistance.Distance;
-                            msd.B = sb.MinDistance.Distance;
-                        }
-
-                        output[x, row].R = (float) (msd.R / range + .5);
-                        output[x, row].G = (float) (msd.G / range + .5);
-                        output[x, row].B = (float) (msd.B / range + .5);
+                        r.NearEdge?.Segment.DistanceToPseudoDistance(ref r.MinDistance, p, r.NearParam);
+                        g.NearEdge?.Segment.DistanceToPseudoDistance(ref g.MinDistance, p, g.NearParam);
+                        b.NearEdge?.Segment.DistanceToPseudoDistance(ref b.MinDistance, p, b.NearParam);
+                        medMinDistance = Arithmetics.Median(r.MinDistance.Distance, g.MinDistance.Distance,
+                            b.MinDistance.Distance);
+                        contourSd[i].R = r.MinDistance.Distance;
+                        contourSd[i].G = g.MinDistance.Distance;
+                        contourSd[i].B = b.MinDistance.Distance;
+                        contourSd[i].Med = medMinDistance;
+                        if (windings[i] > 0 && medMinDistance >= 0 && Math.Abs(medMinDistance) < Math.Abs(posDist))
+                            posDist = medMinDistance;
+                        if (windings[i] < 0 && medMinDistance <= 0 && Math.Abs(medMinDistance) < Math.Abs(negDist))
+                            negDist = medMinDistance;
                     }
+
+                    sr.NearEdge?.Segment.DistanceToPseudoDistance(ref sr.MinDistance, p, sr.NearParam);
+                    sg.NearEdge?.Segment.DistanceToPseudoDistance(ref sg.MinDistance, p, sg.NearParam);
+                    sb.NearEdge?.Segment.DistanceToPseudoDistance(ref sb.MinDistance, p, sb.NearParam);
+
+                    MultiDistance msd;
+                    msd.R = msd.G = msd.B = msd.Med = SignedDistance.Infinite.Distance;
+                    if (posDist >= 0 && Math.Abs(posDist) <= Math.Abs(negDist))
+                    {
+                        msd.Med = SignedDistance.Infinite.Distance;
+                        winding = 1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] > 0 && contourSd[i].Med > msd.Med &&
+                                Math.Abs(contourSd[i].Med) < Math.Abs(negDist))
+                                msd = contourSd[i];
+                    }
+                    else if (negDist <= 0 && Math.Abs(negDist) <= Math.Abs(posDist))
+                    {
+                        msd.Med = -SignedDistance.Infinite.Distance;
+                        winding = -1;
+                        for (var i = 0; i < contourCount; ++i)
+                            if (windings[i] < 0 && contourSd[i].Med < msd.Med &&
+                                Math.Abs(contourSd[i].Med) < Math.Abs(posDist))
+                                msd = contourSd[i];
+                    }
+
+                    for (var i = 0; i < contourCount; ++i)
+                        if (windings[i] != winding && Math.Abs(contourSd[i].Med) < Math.Abs(msd.Med))
+                            msd = contourSd[i];
+                    if (Arithmetics.Median(sr.MinDistance.Distance, sg.MinDistance.Distance,
+                            sb.MinDistance.Distance) ==
+                        msd.Med)
+                    {
+                        msd.R = sr.MinDistance.Distance;
+                        msd.G = sg.MinDistance.Distance;
+                        msd.B = sb.MinDistance.Distance;
+                    }
+
+                    output[x, row].R = (float) (msd.R / range + .5);
+                    output[x, row].G = (float) (msd.G / range + .5);
+                    output[x, row].B = (float) (msd.B / range + .5);
                 }
             }
 

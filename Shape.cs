@@ -38,7 +38,7 @@ namespace Msdfgen
             foreach (var contour in Contours)
                 if (contour.Edges.Count > 0)
                 {
-                    var corner = contour.Edges[contour.Edges.Count - 2].Segment.Point(1);
+                    var corner = contour.Edges[contour.Edges.Count - 1].Segment.Point(1);
                     foreach (var edge in contour.Edges)
                     {
                         if (edge.Segment == null)

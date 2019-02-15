@@ -23,20 +23,6 @@ namespace Msdfgen
             Y = y;
         }
 
-        /// Sets the vector to zero.
-        public void Reset()
-        {
-            X = 0;
-            Y = 0;
-        }
-
-        /// Sets individual elements of the vector.
-        public void Set(double x, double y)
-        {
-            X = x;
-            Y = y;
-        }
-
         /// Returns the vector's length.
         public double Length()
         {
