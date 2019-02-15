@@ -5,6 +5,8 @@
 # Build Data
 /bin
 /obj
+*/bin
+*/obj
 
 # Binaries
 *.exe

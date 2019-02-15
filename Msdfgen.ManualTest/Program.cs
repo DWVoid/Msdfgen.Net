@@ -1,8 +1,10 @@
-﻿namespace Msdfgen
+﻿using Msdfgen.IO;
+
+namespace Msdfgen.ManualTest
 {
     internal static class Program
     {
-        private static void Main(string[] args)
+        static void Main(string[] args)
         {
             var ft = ImportFont.InitializeFreetype();
             var font = ImportFont.LoadFont(ft, "test.otf");
@@ -17,7 +19,7 @@
             Bmp.SaveBmp(msdf, "output.bmp");
             {
                 // MDSF Text
-                var rast = new Bitmap<float>(64, 64);
+                var rast = new Bitmap<float>(1024, 1024);
                 Render.RenderSdf(rast, msdf, 0.5);
                 Bmp.SaveBmp(rast,"rasterized.bmp");
             }

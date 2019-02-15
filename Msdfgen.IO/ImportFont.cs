@@ -1,7 +1,7 @@
 using System;
 using SharpFont;
 
-namespace Msdfgen
+namespace Msdfgen.IO
 {
     public static class ImportFont
     {

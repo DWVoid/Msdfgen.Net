@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Msdfgen.IO\Msdfgen.IO.csproj" />
+    <ProjectReference Include="..\Msdfgen\Msdfgen.csproj" />
+  </ItemGroup>
+
+</Project>
