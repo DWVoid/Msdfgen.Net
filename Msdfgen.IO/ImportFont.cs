@@ -38,13 +38,13 @@ namespace Msdfgen.IO
             tabAdvance = font.Glyph.Advance.X.Value / 64.0;
         }
 
-        public static void LoadGlyph(Shape output, Face font, uint unicode, ref double advance)
+        public static Shape LoadGlyph(Face font, uint unicode, ref double advance)
         {
+            var result = new Shape();
             font.LoadChar(unicode, LoadFlags.NoScale, LoadTarget.Normal);
-            output.Contours.Clear();
-            output.InverseYAxis = false;
+            result.InverseYAxis = false;
             advance = font.Glyph.Advance.X.Value / 64.0;
-            var context = new FtContext(output);
+            var context = new FtContext(result);
             var ftFunctions = new OutlineFuncs
             {
                 MoveFunction = context.FtMoveTo,
@@ -54,6 +54,7 @@ namespace Msdfgen.IO
                 Shift = 0
             };
             font.Glyph.Outline.Decompose(ftFunctions, IntPtr.Zero);
+            return result;
         }
 
         public static double GetKerning(Face font, uint unicode1, uint unicode2)
@@ -82,29 +83,28 @@ namespace Msdfgen.IO
             internal int FtMoveTo(ref FTVector to, IntPtr context)
             {
                 _contour = new Contour();
-                _shape.AddContour(_contour);
+                _shape.Add(_contour);
                 _position = FtPoint2(ref to);
                 return 0;
             }
 
             internal int FtLineTo(ref FTVector to, IntPtr context)
             {
-                _contour.AddEdge(new EdgeHolder(_position, FtPoint2(ref to)));
+                _contour.Add(new LinearSegment(_position, FtPoint2(ref to)));
                 _position = FtPoint2(ref to);
                 return 0;
             }
 
             internal int FtConicTo(ref FTVector control, ref FTVector to, IntPtr context)
             {
-                _contour.AddEdge(new EdgeHolder(_position, FtPoint2(ref control), FtPoint2(ref to)));
+                _contour.Add(new QuadraticSegment(_position, FtPoint2(ref control), FtPoint2(ref to)));
                 _position = FtPoint2(ref to);
                 return 0;
             }
 
             internal int FtCubicTo(ref FTVector control1, ref FTVector control2, ref FTVector to, IntPtr context)
             {
-                _contour.AddEdge(new EdgeHolder(_position, FtPoint2(ref control1), FtPoint2(ref control2),
-                    FtPoint2(ref to)));
+                _contour.Add(new CubicSegment(_position, FtPoint2(ref control1), FtPoint2(ref control2),FtPoint2(ref to)));
                 _position = FtPoint2(ref to);
                 return 0;
             }

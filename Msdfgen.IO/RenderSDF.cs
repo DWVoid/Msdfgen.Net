@@ -8,9 +8,9 @@ namespace Msdfgen
         {
             var output = new FloatRgb
             {
-                R = Arithmetics.Mix(a.R, b.R, weight),
-                G = Arithmetics.Mix(a.G, b.G, weight),
-                B = Arithmetics.Mix(a.B, b.B, weight)
+                R = Arithmetic.Mix(a.R, b.R, weight),
+                G = Arithmetic.Mix(a.G, b.G, weight),
+                B = Arithmetic.Mix(a.B, b.B, weight)
             };
             return output;
         }
@@ -48,8 +48,8 @@ namespace Msdfgen
             r = Math.Clamp(r, 0, w - 1);
             b = Math.Clamp(b, 0, h - 1);
             t = Math.Clamp(t, 0, h - 1);
-            return Arithmetics.Mix(Arithmetics.Mix(bitmap[l, b], bitmap[r, b], lr),
-                Arithmetics.Mix(bitmap[l, t], bitmap[r, t], lr), bt);
+            return Arithmetic.Mix(Arithmetic.Mix(bitmap[l, b], bitmap[r, b], lr),
+                Arithmetic.Mix(bitmap[l, t], bitmap[r, t], lr), bt);
         }
 
         private static float DistVal(float dist, double pxRange)
@@ -94,7 +94,7 @@ namespace Msdfgen
             for (var x = 0; x < w; ++x)
             {
                 var s = Sample(sdf, new Vector2((x + .5) / w, (y + .5) / h));
-                output[x, y] = DistVal(Arithmetics.Median(s.R, s.G, s.B), pxRange);
+                output[x, y] = DistVal(Arithmetic.Median(s.R, s.G, s.B), pxRange);
             }
         }
 

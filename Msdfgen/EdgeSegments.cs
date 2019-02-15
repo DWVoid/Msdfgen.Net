@@ -5,11 +5,6 @@ namespace Msdfgen
     /// An abstract edge segment.
     public abstract class EdgeSegment
     {
-        // Parameters for iterative search of closest point on a cubic Bezier curve. Increase for higher precision.
-        internal const int MsdfgenCubicSearchStarts = 4;
-
-        internal const int MsdfgenCubicSearchSteps = 4;
-
         public EdgeColor Color;
 
         protected EdgeSegment(EdgeColor edgeColor = EdgeColor.White)
@@ -94,7 +89,7 @@ namespace Msdfgen
 
         public override Vector2 Point(double param)
         {
-            return Arithmetics.Mix(_p[0], _p[1], param);
+            return Arithmetic.Mix(_p[0], _p[1], param);
         }
 
         public override Vector2 Direction(double param)
@@ -116,7 +111,7 @@ namespace Msdfgen
                     return new SignedDistance(orthoDistance, 0);
             }
 
-            return new SignedDistance(Arithmetics.NonZeroSign(Vector2.Cross(aq, ab)) * endpointDistance,
+            return new SignedDistance(Arithmetic.NonZeroSign(Vector2.Cross(aq, ab)) * endpointDistance,
                 Math.Abs(Vector2.Dot(ab.Normalize(), eq.Normalize())));
         }
 
@@ -160,12 +155,12 @@ namespace Msdfgen
 
         public override Vector2 Point(double param)
         {
-            return Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], param), Arithmetics.Mix(_p[1], _p[2], param), param);
+            return Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], param), Arithmetic.Mix(_p[1], _p[2], param), param);
         }
 
         public override Vector2 Direction(double param)
         {
-            return Arithmetics.Mix(_p[1] - _p[0], _p[2] - _p[1], param);
+            return Arithmetic.Mix(_p[1] - _p[0], _p[2] - _p[1], param);
         }
 
         public override unsafe SignedDistance SignedDistance(Vector2 origin, ref double param)
@@ -180,10 +175,10 @@ namespace Msdfgen
             var t = stackalloc double[3];
             var solutions = Equations.SolveCubic(t, a, b, c, d);
 
-            var minDistance = Arithmetics.NonZeroSign(Vector2.Cross(ab, qa)) * qa.Length(); // distance from A
+            var minDistance = Arithmetic.NonZeroSign(Vector2.Cross(ab, qa)) * qa.Length(); // distance from A
             param = -Vector2.Dot(qa, ab) / Vector2.Dot(ab, ab);
             {
-                var distance = Arithmetics.NonZeroSign(Vector2.Cross(_p[2] - _p[1], _p[2] - origin)) *
+                var distance = Arithmetic.NonZeroSign(Vector2.Cross(_p[2] - _p[1], _p[2] - origin)) *
                                (_p[2] - origin).Length(); // distance from B
                 if (Math.Abs(distance) < Math.Abs(minDistance))
                 {
@@ -196,7 +191,7 @@ namespace Msdfgen
                 if (t[i] > 0 && t[i] < 1)
                 {
                     var endpoint = _p[0] + 2 * t[i] * ab + t[i] * t[i] * br;
-                    var distance = Arithmetics.NonZeroSign(Vector2.Cross(_p[2] - _p[0], endpoint - origin)) *
+                    var distance = Arithmetic.NonZeroSign(Vector2.Cross(_p[2] - _p[0], endpoint - origin)) *
                                    (endpoint - origin).Length();
                     if (Math.Abs(distance) <= Math.Abs(minDistance))
                     {
@@ -259,18 +254,23 @@ namespace Msdfgen
 
         public override void SplitInThirds(out EdgeSegment part1, out EdgeSegment part2, out EdgeSegment part3)
         {
-            part1 = new QuadraticSegment(_p[0], Arithmetics.Mix(_p[0], _p[1], 1.0 / 3.0), Point(1.0 / 3.0), Color);
+            part1 = new QuadraticSegment(_p[0], Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Point(1.0 / 3.0), Color);
             part2 = new QuadraticSegment(Point(1.0 / 3.0),
-                Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetics.Mix(_p[1], _p[2], 4.0 / 9.0),
+                Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 5.0 / 9.0), Arithmetic.Mix(_p[1], _p[2], 4.0 / 9.0),
                     0.5),
                 Point(2 / 3.0), Color);
-            part3 = new QuadraticSegment(Point(2.0 / 3.0), Arithmetics.Mix(_p[1], _p[2], 2.0 / 3.0), _p[2], Color);
+            part3 = new QuadraticSegment(Point(2.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), _p[2], Color);
         }
     }
 
     /// A cubic Bezier curve.
     public class CubicSegment : EdgeSegment
     {
+        // Parameters for iterative search of closest point on a cubic Bezier curve. Increase for higher precision.
+        private const int MsdfgenCubicSearchStarts = 4;
+
+        private const int MsdfgenCubicSearchSteps = 4;
+
         private readonly Vector2[] _p;
 
         public CubicSegment(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, EdgeColor edgeColor = EdgeColor.White) :
@@ -281,15 +281,15 @@ namespace Msdfgen
 
         public override Vector2 Point(double param)
         {
-            var p12 = Arithmetics.Mix(_p[1], _p[2], param);
-            return Arithmetics.Mix(Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], param), p12, param),
-                Arithmetics.Mix(p12, Arithmetics.Mix(_p[2], _p[3], param), param), param);
+            var p12 = Arithmetic.Mix(_p[1], _p[2], param);
+            return Arithmetic.Mix(Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], param), p12, param),
+                Arithmetic.Mix(p12, Arithmetic.Mix(_p[2], _p[3], param), param), param);
         }
 
         public override Vector2 Direction(double param)
         {
-            var tangent = Arithmetics.Mix(Arithmetics.Mix(_p[1] - _p[0], _p[2] - _p[1], param),
-                Arithmetics.Mix(_p[2] - _p[1], _p[3] - _p[2], param), param);
+            var tangent = Arithmetic.Mix(Arithmetic.Mix(_p[1] - _p[0], _p[2] - _p[1], param),
+                Arithmetic.Mix(_p[2] - _p[1], _p[3] - _p[2], param), param);
             if (!tangent)
             {
                 if (param == 0) return _p[2] - _p[0];
@@ -307,12 +307,12 @@ namespace Msdfgen
             var as_ = _p[3] - _p[2] - (_p[2] - _p[1]) - br;
 
             var epDir = Direction(0);
-            var minDistance = Arithmetics.NonZeroSign(Vector2.Cross(epDir, qa)) * qa.Length(); // distance from A
+            var minDistance = Arithmetic.NonZeroSign(Vector2.Cross(epDir, qa)) * qa.Length(); // distance from A
             param = -Vector2.Dot(qa, epDir) / Vector2.Dot(epDir, epDir);
             {
                 epDir = Direction(1);
                 var distance =
-                    Arithmetics.NonZeroSign(Vector2.Cross(epDir, _p[3] - origin)) *
+                    Arithmetic.NonZeroSign(Vector2.Cross(epDir, _p[3] - origin)) *
                     (_p[3] - origin).Length(); // distance from B
                 if (Math.Abs(distance) < Math.Abs(minDistance))
                 {
@@ -327,7 +327,7 @@ namespace Msdfgen
                 for (var step = 0;; ++step)
                 {
                     var qpt = Point(t) - origin;
-                    var distance = Arithmetics.NonZeroSign(Vector2.Cross(Direction(t), qpt)) * qpt.Length();
+                    var distance = Arithmetic.NonZeroSign(Vector2.Cross(Direction(t), qpt)) * qpt.Length();
                     if (Math.Abs(distance) < Math.Abs(minDistance))
                     {
                         minDistance = distance;
@@ -385,25 +385,25 @@ namespace Msdfgen
 
         public override void SplitInThirds(out EdgeSegment part1, out EdgeSegment part2, out EdgeSegment part3)
         {
-            part1 = new CubicSegment(_p[0], _p[0] == _p[1] ? _p[0] : Arithmetics.Mix(_p[0], _p[1], 1.0 / 3.0),
-                Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetics.Mix(_p[1], _p[2], 1.0 / 3.0),
+            part1 = new CubicSegment(_p[0], _p[0] == _p[1] ? _p[0] : Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0),
+                Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 1.0 / 3.0),
                     1.0 / 3.0), Point(1.0 / 3.0), Color);
             part2 = new CubicSegment(Point(1.0 / 3.0),
-                Arithmetics.Mix(
-                    Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetics.Mix(_p[1], _p[2], 1.0 / 3.0),
+                Arithmetic.Mix(
+                    Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 1.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 1.0 / 3.0),
                         1.0 / 3.0),
-                    Arithmetics.Mix(Arithmetics.Mix(_p[1], _p[2], 1.0 / 3.0), Arithmetics.Mix(_p[2], _p[3], 1.0 / 3.0),
+                    Arithmetic.Mix(Arithmetic.Mix(_p[1], _p[2], 1.0 / 3.0), Arithmetic.Mix(_p[2], _p[3], 1.0 / 3.0),
                         1.0 / 3.0), 2.0 / 3.0),
-                Arithmetics.Mix(
-                    Arithmetics.Mix(Arithmetics.Mix(_p[0], _p[1], 2.0 / 3.0), Arithmetics.Mix(_p[1], _p[2], 2.0 / 3.0),
+                Arithmetic.Mix(
+                    Arithmetic.Mix(Arithmetic.Mix(_p[0], _p[1], 2.0 / 3.0), Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0),
                         2.0 / 3.0),
-                    Arithmetics.Mix(Arithmetics.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetics.Mix(_p[2], _p[3], 2.0 / 3.0),
+                    Arithmetic.Mix(Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0),
                         2.0 / 3.0), 1.0 / 3.0),
                 Point(2.0 / 3.0), Color);
             part3 = new CubicSegment(Point(2.0 / 3.0),
-                Arithmetics.Mix(Arithmetics.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetics.Mix(_p[2], _p[3], 2.0 / 3.0),
+                Arithmetic.Mix(Arithmetic.Mix(_p[1], _p[2], 2.0 / 3.0), Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0),
                     2.0 / 3.0),
-                _p[2] == _p[3] ? _p[3] : Arithmetics.Mix(_p[2], _p[3], 2.0 / 3.0), _p[3], Color);
+                _p[2] == _p[3] ? _p[3] : Arithmetic.Mix(_p[2], _p[3], 2.0 / 3.0), _p[3], Color);
         }
     }
 }
